@@ -146,40 +146,53 @@ var ROBOT = (function () {
     return '<g class="rb-cola">' + s + '</g>';
   }
 
+  /* =========== MONTAJE CON LAS PIEZAS DIBUJADAS (img/piezas/*.webp) =========== */
+  var RAT = {"antena_bio_1":1.863,"antena_bio_2":1.492,"antena_cromo_1":2.243,"antena_cromo_2":1.657,"antena_cuantico_1":1.845,"antena_cuantico_2":2.215,"antena_plasma_1":1.855,"antena_plasma_2":1.662,"antena_sombra_1":2.67,"antena_sombra_2":1.612,"antena_voltio_1":2.8,"boca_bio_1":0.658,"boca_bio_2":0.565,"boca_cromo_1":0.563,"boca_cromo_2":0.563,"boca_cuantico_1":0.642,"boca_cuantico_2":0.71,"boca_plasma_1":0.718,"boca_plasma_2":0.85,"boca_sombra_1":0.515,"boca_sombra_2":0.515,"boca_voltio_1":0.462,"boca_voltio_2":0.487,"cola_bio_1":0.423,"cola_bio_2":0.703,"cola_cromo_1":0.661,"cola_cromo_2":0.691,"cola_cuantico_1":0.473,"cola_cuantico_2":0.417,"cola_plasma_1":0.487,"cola_plasma_2":0.744,"cola_sombra_1":0.801,"cola_sombra_2":0.633,"cola_voltio_1":0.47,"cola_voltio_2":0.473,"cuerno_bio_1":1.015,"cuerno_bio_2":1.532,"cuerno_cromo_1":0.977,"cuerno_cromo_2":1.112,"cuerno_cuantico_1":1.955,"cuerno_cuantico_2":1.1,"cuerno_plasma_1":1.103,"cuerno_plasma_2":1.02,"cuerno_sombra_1":1.153,"cuerno_sombra_2":1.617,"cuerno_voltio_1":2.68,"cuerno_voltio_2":1.022,"cuerpo_bio":0.881,"cuerpo_cromo":0.902,"cuerpo_cuantico":0.87,"cuerpo_plasma":0.722,"cuerpo_sombra":0.878,"cuerpo_voltio":0.839,"espalda_bio_1":2.141,"espalda_bio_2":0.851,"espalda_cromo_1":1.926,"espalda_cromo_2":0.603,"espalda_cuantico_1":2.014,"espalda_cuantico_2":1.114,"espalda_plasma_1":0.63,"espalda_plasma_2":1.759,"espalda_sombra_1":1.241,"espalda_sombra_2":1.39,"espalda_voltio_1":1.014,"espalda_voltio_2":1.067,"ojos_bio_1":0.455,"ojos_bio_2":0.475,"ojos_cromo_1":0.428,"ojos_cromo_2":0.468,"ojos_cuantico_1":0.388,"ojos_cuantico_2":0.468,"ojos_plasma_1":0.282,"ojos_plasma_2":0.472,"ojos_sombra_1":0.39,"ojos_sombra_2":0.47,"ojos_voltio_1":0.407,"ojos_voltio_2":0.475};
+  var ANC = {   // anclajes de cada cuerpo (fracciones de la imagen): t=arriba en x .3/.55/.78, L=borde trasero
+    plasma:   { t30: .046, t55: .043, t78: .054, L: .044, ox: .80, oy: .40, bx: .82, by: .64 },
+    voltio:   { t30: .085, t55: .065, t78: .133, L: .048, ox: .80, oy: .38, bx: .81, by: .60 },
+    bio:      { t30: .068, t55: .103, t78: .145, L: .068, ox: .80, oy: .40, bx: .81, by: .61 },
+    cromo:    { t30: .041, t55: .036, t78: .092, L: .004, ox: .79, oy: .38, bx: .80, by: .60 },
+    cuantico: { t30: .034, t55: .019, t78: .073, L: .052, ox: .79, oy: .38, bx: .80, by: .60 },
+    sombra:   { t30: .044, t55: .010, t78: .065, L: .015, ox: .78, oy: .36, bx: .79, by: .57 }
+  };
+  var TINTE = ['', 'hue-rotate(16deg) saturate(1.1)', 'hue-rotate(-16deg)', 'saturate(.65) brightness(1.08)'];
+  var BASE = 'img/piezas/';
+  function nom(slot, g) {
+    var k = (slot === 'antenas' ? 'antena' : slot) + '_' + g.c + '_' + (g.v + 1);
+    if (!RAT[k]) k = (slot === 'antenas' ? 'antena' : slot) + '_' + g.c + '_1';   // pieza aún sin dibujar
+    return RAT[k] ? k : null;
+  }
+  // coloca una imagen dentro de una caja (bw x bh) manteniendo proporción; ax/ay = punto de anclaje (0-1) que va en (x,y)
+  function img(k, x, y, bw, bh, ax, ay, extra) {
+    if (!k) return '';
+    var r = RAT[k], w = bw, h = bw * r;
+    if (h > bh) { h = bh; w = bh / r; }
+    return '<image href="' + BASE + k + '.webp" x="' + (x - w * ax).toFixed(1) + '" y="' + (y - h * ay).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '"' + (extra || '') + '/>';
+  }
   function svg(genes, opts) {
     opts = opts || {};
     if (!genes || !genes.p) return '';
-    var id = 'r' + (++n), cls = genes.c, K = C(cls), T = (TONOS[cls] || TONOS.cromo)[genes.col || 0];
+    var cls = genes.c, K = C(cls), A = ANC[cls] || ANC.cromo;
     var pp = {}; CX.SLOTS.forEach(function (s) { pp[s] = CX.parteGen(genes.p[s][0]); });
-    var defs = '<defs>' +
-      '<linearGradient id="mt' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#c3ccd6"/><stop offset="1" stop-color="#6a7684"/></linearGradient>' +
-      '<radialGradient id="bg' + id + '" cx=".62" cy=".3" r=".85"><stop offset="0" stop-color="' + T[0] + '"/><stop offset=".55" stop-color="' + T[1] + '"/><stop offset="1" stop-color="' + T[2] + '"/></radialGradient>' +
-      '<radialGradient id="vz' + id + '" cx=".5" cy=".3" r=".9"><stop offset="0" stop-color="#1c2638"/><stop offset="1" stop-color="#05080f"/></radialGradient>' +
-      '<radialGradient id="fu' + id + '" cx=".5" cy="0" r="1"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="' + K.col2 + '"/><stop offset="1" stop-color="' + K.col + '" stop-opacity="0"/></radialGradient>' +
-      '<filter id="gl' + id + '" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
-      '<filter id="sg' + id + '" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="1.5" stdDeviation="1.2" flood-color="#000" flood-opacity=".45"/></filter>' +
-      '</defs>';
-    var cuerpo = CUERPO[cls] || CUERPO.cromo;
-    var fuego = [92, 116, 140].map(function (x, i) {
-      return '<g class="rb-jet j' + i + '"><path d="M' + (x - 9) + ' 176 h18 l-3 10 h-12z" fill="url(#mt' + id + ')" stroke="#3c4550" stroke-width="1.2"/>' +
-        '<path class="rb-fuego" d="M' + (x - 7) + ' 186 Q' + x + ' 214 ' + (x + 7) + ' 186Z" fill="url(#fu' + id + ')"/></g>';
-    }).join('');
-    var nucleo = '<circle cx="112" cy="148" r="9" fill="#0a0f1a" stroke="url(#mt' + id + ')" stroke-width="3"/><circle class="rb-core" cx="112" cy="148" r="5" fill="' + K.col + '"/>';
-    var placas = '<path d="' + cuerpo + '" fill="url(#bg' + id + ')" stroke="#1a2230" stroke-width="2.5"/>' +
-      '<path d="' + cuerpo + '" fill="none" stroke="' + K.col + '" stroke-width="1.2" opacity=".55" transform="translate(120 125) scale(.92) translate(-120 -125)"/>' +
-      '<ellipse cx="104" cy="152" rx="34" ry="20" fill="#fff" opacity=".12"/>' +
-      '<path d="M80 132 Q112 124 150 134" stroke="#0b1220" stroke-width="2" fill="none" opacity=".35"/>' +
-      '<ellipse cx="140" cy="84" rx="20" ry="6" fill="#fff" opacity=".35" transform="rotate(-12 140 84)"/>';
-    var visor = '<rect x="118" y="90" width="58" height="38" rx="18" fill="url(#vz' + id + ')" stroke="url(#mt' + id + ')" stroke-width="3.5"/>' +
-      '<path d="M126 96 Q146 92 166 96" stroke="#fff" stroke-width="2" opacity=".18" fill="none" stroke-linecap="round"/>';
-    var out = '<svg class="rb ' + (opts.cls || '') + '" viewBox="0 0 240 220" xmlns="http://www.w3.org/2000/svg">' + defs +
-      '<ellipse class="rb-sombra" cx="118" cy="210" rx="56" ry="7" fill="' + K.col + '" opacity=".22"/>' +
+    var kc = 'cuerpo_' + (RAT['cuerpo_' + cls] ? cls : 'cromo'), r = RAT[kc];
+    var BW = 160, BH = BW * r, X0 = 52, Y0 = 198 - BH;          // caja del cuerpo
+    var P = function (fx, fy) { return [X0 + fx * BW, Y0 + fy * BH]; };
+    var tinte = TINTE[genes.col || 0];
+    var e = P(.30, A.t30 + .16), an = P(.52, A.t55 + .10), cu = P(.80, A.t78 + .10), co = P(A.L + .07, .56),
+        oj = P(A.ox, A.oy), bo = P(A.bx, A.by);
+    var out = '<svg class="rb ' + (opts.cls || '') + '" viewBox="0 0 240 220" overflow="visible" xmlns="http://www.w3.org/2000/svg">' +
+      '<ellipse class="rb-sombra" cx="124" cy="200" rx="68" ry="7" fill="' + K.col + '" opacity=".25"/>' +
       '<g class="rb-cuerpo">' +
-      cola(pp.cola.c, pp.cola.v, id) + espalda(pp.espalda.c, pp.espalda.v, id) + fuego +
-      antenas(pp.antenas.c, pp.antenas.v, id) +
-      placas + nucleo + visor + ojos(pp.ojos.c, pp.ojos.v, id) + boca(pp.boca.c, pp.boca.v, id) + cuerno(pp.cuerno.c, pp.cuerno.v, id) +
+      '<g class="rb-cola">' + img(nom('cola', pp.cola), co[0], co[1], 68, 56, 1, .5) + '</g>' +
+      '<g class="rb-espalda">' + img(nom('espalda', pp.espalda), e[0], e[1], 86, 96, .5, 1) + '</g>' +
+      '<g class="rb-ant">' + img(nom('antenas', pp.antenas), an[0], an[1], 56, 76, .5, 1) + '</g>' +
+      '<g class="rb-cuerno">' + img(nom('cuerno', pp.cuerno), cu[0], cu[1], 44, 58, .5, 1) + '</g>' +
+      img(kc, X0, Y0, BW, 999, 0, 0, tinte ? ' style="filter:' + tinte + '"' : '') +
+      '<g class="rb-ojos">' + img(nom('ojos', pp.ojos), oj[0], oj[1], 60, 34, .5, .5) + '</g>' +
+      '<g class="rb-boca">' + img(nom('boca', pp.boca), bo[0], bo[1], 40, 28, .5, .5) + '</g>' +
       '</g></svg>';
-    return out.replace(/stroke="url\(#mt[a-z0-9]+\)"/g, 'stroke="#b4bfcc"');
+    return out;
   }
   /* huevo con su clase (o '?' si no se conoce) */
   function huevo(clase, opts) {
