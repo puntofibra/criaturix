@@ -168,7 +168,7 @@ var ROBOT = (function () {
     if (!k) return '';
     var r = RAT[k], w = bw, h = bw * r;
     if (h > bh) { h = bh; w = bh / r; }
-    return '<image href="' + BASE + k + '.webp" x="' + (x - w * ax).toFixed(1) + '" y="' + (y - h * ay).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '"' + (extra || '') + '/>';
+    return '<image href="' + BASE + k + '.webp?v=5" x="' + (x - w * ax).toFixed(1) + '" y="' + (y - h * ay).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '"' + (extra || '') + '/>';
   }
   function svg(genes, opts) {
     opts = opts || {};
