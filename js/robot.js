@@ -147,7 +147,7 @@ var ROBOT = (function () {
   }
 
   /* =========== MONTAJE CON LAS PIEZAS DIBUJADAS (img/piezas/*.webp) =========== */
-  var RAT = {"antena_bio_1":1.863,"antena_bio_2":1.492,"antena_cromo_1":2.243,"antena_cromo_2":1.657,"antena_cuantico_1":1.845,"antena_cuantico_2":2.215,"antena_plasma_1":1.855,"antena_plasma_2":1.662,"antena_sombra_1":2.67,"antena_sombra_2":1.612,"antena_voltio_1":2.8,"boca_bio_1":0.658,"boca_bio_2":0.565,"boca_cromo_1":0.563,"boca_cromo_2":0.563,"boca_cuantico_1":0.642,"boca_cuantico_2":0.71,"boca_plasma_1":0.718,"boca_plasma_2":0.85,"boca_sombra_1":0.515,"boca_sombra_2":0.515,"boca_voltio_1":0.462,"boca_voltio_2":0.487,"cola_bio_1":0.423,"cola_bio_2":0.703,"cola_cromo_1":0.661,"cola_cromo_2":0.691,"cola_cuantico_1":0.473,"cola_cuantico_2":0.417,"cola_plasma_1":0.487,"cola_plasma_2":0.744,"cola_sombra_1":0.801,"cola_sombra_2":0.633,"cola_voltio_1":0.47,"cola_voltio_2":0.473,"cuerno_bio_1":1.015,"cuerno_bio_2":1.532,"cuerno_cromo_1":0.977,"cuerno_cromo_2":1.112,"cuerno_cuantico_1":1.955,"cuerno_cuantico_2":1.1,"cuerno_plasma_1":1.103,"cuerno_plasma_2":1.02,"cuerno_sombra_1":1.153,"cuerno_sombra_2":1.617,"cuerno_voltio_1":2.68,"cuerno_voltio_2":1.022,"cuerpo_bio":0.881,"cuerpo_cromo":0.902,"cuerpo_cuantico":0.87,"cuerpo_plasma":0.86,"cuerpo_sombra":0.878,"cuerpo_voltio":0.839,"espalda_bio_1":2.141,"espalda_bio_2":0.851,"espalda_cromo_1":1.926,"espalda_cromo_2":0.603,"espalda_cuantico_1":2.014,"espalda_cuantico_2":1.114,"espalda_plasma_1":0.63,"espalda_plasma_2":1.759,"espalda_sombra_1":1.241,"espalda_sombra_2":1.39,"espalda_voltio_1":1.014,"espalda_voltio_2":1.067,"ojos_bio_1":0.967,"ojos_bio_2":1.02,"ojos_cromo_1":0.917,"ojos_cromo_2":0.987,"ojos_cuantico_1":0.833,"ojos_cuantico_2":0.997,"ojos_plasma_1":0.927,"ojos_plasma_2":1.007,"ojos_sombra_1":0.873,"ojos_sombra_2":0.993,"ojos_voltio_1":0.98,"ojos_voltio_2":0.997};
+  var RAT = {"antena_bio_1":1.863,"antena_bio_2":1.492,"antena_cromo_1":2.243,"antena_cromo_2":1.657,"antena_cuantico_1":1.845,"antena_cuantico_2":2.215,"antena_plasma_1":1.855,"antena_plasma_2":1.662,"antena_sombra_1":2.67,"antena_sombra_2":1.612,"antena_voltio_1":2.8,"boca_bio_1":0.658,"boca_bio_2":0.565,"boca_cromo_1":0.563,"boca_cromo_2":0.563,"boca_cuantico_1":0.642,"boca_cuantico_2":0.71,"boca_plasma_1":0.822,"boca_plasma_2":0.85,"boca_sombra_1":0.515,"boca_sombra_2":0.515,"boca_voltio_1":0.462,"boca_voltio_2":0.487,"cola_bio_1":0.423,"cola_bio_2":0.703,"cola_cromo_1":0.661,"cola_cromo_2":0.691,"cola_cuantico_1":0.473,"cola_cuantico_2":0.417,"cola_plasma_1":0.487,"cola_plasma_2":0.744,"cola_sombra_1":0.801,"cola_sombra_2":0.633,"cola_voltio_1":0.47,"cola_voltio_2":0.473,"cuerno_bio_1":1.015,"cuerno_bio_2":1.532,"cuerno_cromo_1":0.977,"cuerno_cromo_2":1.112,"cuerno_cuantico_1":1.955,"cuerno_cuantico_2":1.1,"cuerno_plasma_1":1.103,"cuerno_plasma_2":1.02,"cuerno_sombra_1":1.153,"cuerno_sombra_2":1.617,"cuerno_voltio_1":2.68,"cuerno_voltio_2":1.022,"cuerpo_bio":0.881,"cuerpo_cromo":0.902,"cuerpo_cuantico":0.87,"cuerpo_plasma":0.86,"cuerpo_sombra":0.878,"cuerpo_voltio":0.839,"espalda_bio_1":2.141,"espalda_bio_2":0.851,"espalda_cromo_1":1.926,"espalda_cromo_2":0.603,"espalda_cuantico_1":2.014,"espalda_cuantico_2":1.114,"espalda_plasma_1":0.63,"espalda_plasma_2":1.759,"espalda_sombra_1":1.241,"espalda_sombra_2":1.39,"espalda_voltio_1":1.014,"espalda_voltio_2":1.067,"ojos_bio_1":0.967,"ojos_bio_2":1.02,"ojos_cromo_1":0.917,"ojos_cromo_2":0.987,"ojos_cuantico_1":0.833,"ojos_cuantico_2":0.997,"ojos_plasma_1":0.927,"ojos_plasma_2":1.007,"ojos_sombra_1":0.873,"ojos_sombra_2":0.993,"ojos_voltio_1":0.98,"ojos_voltio_2":0.997};
   var ANC = {   // anclajes de cada cuerpo (fracciones de la imagen): t=arriba en x .3/.55/.78, L=borde trasero
     plasma:   { t30: .110, t55: .091, t78: .148, L: .100, ox: .84, oy: .42, bx: .82, by: .64 },
     voltio:   { t30: .085, t55: .065, t78: .133, L: .048, ox: .86, oy: .36, bx: .87, by: .66 },
@@ -168,7 +168,7 @@ var ROBOT = (function () {
     if (!k) return '';
     var r = RAT[k], w = bw, h = bw * r;
     if (h > bh) { h = bh; w = bh / r; }
-    return '<image href="' + BASE + k + '.webp?v=9" x="' + (x - w * ax).toFixed(1) + '" y="' + (y - h * ay).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '"' + (extra || '') + '/>';
+    return '<image href="' + BASE + k + '.webp?v=10" x="' + (x - w * ax).toFixed(1) + '" y="' + (y - h * ay).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '"' + (extra || '') + '/>';
   }
   function svg(genes, opts) {
     opts = opts || {};
@@ -180,7 +180,7 @@ var ROBOT = (function () {
     var P = function (fx, fy) { return [X0 + fx * BW, Y0 + fy * BH]; };
     var tinte = TINTE[genes.col || 0];
     var e = P(.30, A.t30 + .16), an = P(.52, A.t55 + .10), cu = P(.80, A.t78 + .10), co = P(A.L + .07, .56),
-        oj = P(A.ox, A.oy), bo = P(A.bx, A.by);
+        oj = P(A.ox, A.oy), bo = P(A.ox + .08, A.oy + .18);
     var out = '<svg class="rb ' + (opts.cls || '') + '" viewBox="0 0 240 220" overflow="visible" xmlns="http://www.w3.org/2000/svg">' +
       '<ellipse class="rb-sombra" cx="124" cy="200" rx="68" ry="7" fill="' + K.col + '" opacity=".25"/>' +
       '<g class="rb-cuerpo">' +
@@ -190,7 +190,7 @@ var ROBOT = (function () {
       '<g class="rb-cuerno">' + img(nom('cuerno', pp.cuerno), cu[0], cu[1], 44, 58, .5, 1) + '</g>' +
       img(kc, X0, Y0, BW, 999, 0, 0, tinte ? ' style="filter:' + tinte + '"' : '') +
       '<g class="rb-ojos">' + img(nom('ojos', pp.ojos), oj[0], oj[1], 26, 26, .5, .5) + '</g>' +
-      '<g class="rb-boca">' + img(nom('boca', pp.boca), bo[0], bo[1], 40, 28, .5, .5) + '</g>' +
+      '<g class="rb-boca">' + img(nom('boca', pp.boca), bo[0], bo[1], 45, 40, .5, .5) + '</g>' +
       '</g></svg>';
     return out;
   }
