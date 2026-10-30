@@ -3,7 +3,7 @@
    ========================================================= */
 'use strict';
 const CFG = {
-  API: 'https://script.google.com/macros/s/PENDIENTE/exec',
+  API: 'https://script.google.com/macros/s/AKfycbzcvbIi3O4cTPtVQlPJ-EZXpalqK4L6IUtMQjGqsz-DAoorGUqyi_4l-KG3Ii8DFSkX/exec',
   GOOGLE: '454055120059-nuhaop4r62urc3u036cc3grpqo71ulg7.apps.googleusercontent.com',
   URL: 'https://puntofibra.github.io/criaturix/',
   WHATSAPP: '34633200100'
