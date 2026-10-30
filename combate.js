@@ -3,7 +3,7 @@
    ========================================================= */
 'use strict';
 const Combate = (() => {
-  let S = null, sel = { 0: [], 1: [], 2: [] }, ocup = false;
+  let S = null, sel = { 0: [], 1: [], 2: [] }, ocup = false, vel = load('vel', 1);
   const EST = { corr: ['CORR', '#d38bff'], aturde: ['ATURD', '#ffe03a'], miedo: ['MIEDO', '#ff4fd8'], atkMas: ['ATQ▲', '#ff6b5a'], atkMenos: ['ATQ▼', '#9fb6c4'], velMas: ['VEL▲', '#19ff6a'], velMenos: ['VEL▼', '#9fb6c4'], expuesto: ['EXPU', '#ffb02e'] };
   const NOM_EST = { corrosion: 'CORROSIÓN', aturdido: 'ATURDIDO', miedo: 'MIEDO', debilitado: 'DEBILITADO', lento: 'LENTO', expuesto: 'EXPUESTO', potenciado: 'POTENCIADO', veloz: 'VELOZ' };
 
@@ -12,7 +12,7 @@ const Combate = (() => {
       if (!d.ok) { toast(d.error, 'err'); return; }
       cerrarModal(); S = { meta: d.meta, vista: d.vista }; sel = { 0: [], 1: [], 2: [] };
       ir('combate');
-      setTimeout(() => { banner('¡A LUCHAR!', d.meta.modo === 'pve' ? 'ETAPA ' + d.meta.etapa : 'ARENA', '#ff2bd6'); Son.turno(); }, 300);
+      setTimeout(() => { banner('¡A LUCHAR!', d.meta.modo === 'pve' ? 'ETAPA ' + d.meta.etapa : 'ARENA', '#ff2bd6'); Son.turno(); }, 2100);
     });
   }
   function reanudar(c) {
@@ -28,7 +28,7 @@ const Combate = (() => {
     div.className = 'vista combate';
     const V = S.vista;
     div.innerHTML = `<div class="cbTop"><span class="ronda">RONDA <b id="cRonda">${V.ronda}</b></span><div class="vs">${esc(V.yo.nombre)} <em>VS</em> ${esc(V.el.nombre)}</div>
-        <button class="ibtn" id="cSon"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="ondas" d="M16 8a5 5 0 0 1 0 8" fill="none" stroke-width="2"/></svg></button><button class="btn sec peq" id="cSalir">SALIR</button></div>
+        <button class="ibtn" id="cSon"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="ondas" d="M16 8a5 5 0 0 1 0 8" fill="none" stroke-width="2"/></svg></button><button class="ibtn vel" id="cVel" title="Velocidad de la animación">x${vel}</button><button class="btn sec peq" id="cSalir">SALIR</button></div>
       <div class="campo2" id="campo"><div class="lado el" id="ladoEl"></div><div class="lado yo" id="ladoYo"></div></div>
       <div class="cbBajo"><div class="cbCtrl"><div class="energia" id="cEn"></div><span class="mazoN" id="cMazo"></span>
         <div class="der"><button class="btn sec peq" id="cLimpiar">BORRAR</button><button class="btn grande" id="cLuchar">¡LUCHAR!</button></div></div>
@@ -38,15 +38,30 @@ const Combate = (() => {
     $('#cSalir').onclick = salir;
     $('#cLimpiar').onclick = () => { sel = { 0: [], 1: [], 2: [] }; Son.quita(); pintaMano(); pintaPilas(); };
     $('#cLuchar').onclick = luchar;
+    $('#cVel').onclick = () => { vel = vel >= 3 ? 1 : vel + 1; store('vel', vel); $('#cVel').textContent = 'x' + vel; Son.click(); };
     pintaLados(); pintaMano();
+    FX.montar($('#campo'));
+    if (!S.visto) { S.visto = 1; intro(div); }
+  }
+  /* ---------- presentación VS ---------- */
+  function intro(div) {
+    const V = S.vista;
+    $$('.lu', div).forEach((e, i) => { e.style.setProperty('--d', (0.55 + (+e.dataset.p) * 0.12 + (+e.dataset.l) * 0.06) + 's'); e.classList.add('entra'); });
+    const eq = l => (l ? V.el : V.yo).cr.map(c => `<i style="--cc:${colClase(c.genes.c)}">${ROBOT.svg(c.genes, { cls: 'quieto' })}</i>`).join('');
+    const d = document.createElement('div'); d.className = 'cIntro';
+    d.innerHTML = `<div class="ciLado yo"><div class="ciEq">${eq(0)}</div><b>${esc(V.yo.nombre)}</b></div><div class="ciVs">VS</div><div class="ciLado el"><div class="ciEq">${eq(1)}</div><b>${esc(V.el.nombre)}</b></div>`;
+    div.appendChild(d); Son.vs(); vib([20, 40, 60]);
+    setTimeout(() => { FX.temblor(0.5); FX.destello('#fff', 0.35); }, 420);
+    setTimeout(() => d.classList.add('fuera'), 1500); setTimeout(() => d.remove(), 2100);
+    setTimeout(() => $$('.lu.entra', div).forEach(e => e.classList.remove('entra')), 3200);
   }
   function luHTML(c, l, p) {
     const pct = Math.max(0, c.pv / c.pvMax * 100), cls = pct < 30 ? 'bajo' : pct < 60 ? 'medio' : '';
     const ests = Object.keys(EST).filter(k => c.est && c.est[k] && (k !== 'miedo' || c.est[k] >= S.vista.ronda)).map(k => `<i style="color:${EST[k][1]}">${EST[k][0]}${k === 'corr' ? c.est.corr : ''}</i>`).join('');
     return `<div class="lu ${l ? 'el' : 'yo'} ${c.vivo ? '' : 'muerto'} ${c.esc > 0 ? 'conEsc' : ''}" data-l="${l}" data-p="${p}" style="--cc:${colClase(c.genes.c)}">
       <div class="ests">${ests}</div><div class="pila"></div>
-      <div class="cuerpo">${ROBOT.svg(c.genes)}<div class="escudo"></div></div>
-      <div class="hp"><i class="${cls}" style="width:${pct}%"></i><u style="width:${Math.min(100, c.esc / c.pvMax * 100)}%"></u></div>
+      <div class="cuerpo"><div class="pad"></div>${ROBOT.svg(c.genes)}<div class="escudo"></div></div>
+      <div class="hp"><b style="width:${pct}%"></b><i class="${cls}" style="width:${pct}%"></i><u style="width:${Math.min(100, c.esc / c.pvMax * 100)}%"></u></div>
       <div class="hpTxt"><span class="pv">${c.pv}</span>/${c.pvMax}${c.esc > 0 ? ` <span class="e">⛨${c.esc}</span>` : ''}</div><div class="luNom">${esc(c.nom)}</div></div>`;
   }
   function pintaLados() {
@@ -108,7 +123,7 @@ const Combate = (() => {
       pintaLados(); pintaMano(); $('#cRonda').textContent = S.vista.ronda;
       ocup = false; ocupado(btn, false);
       if (d.premio) fin(d.premio);
-      else { Son.turno(); }
+      else { cartelRonda(S.vista.ronda); }
     });
   }
   /* ---------- animación de eventos ---------- */
@@ -118,55 +133,100 @@ const Combate = (() => {
     const el = lu(l, p); if (!el) return;
     const c = (l ? S.vista.el : S.vista.yo).cr[p]; if (pv != null) c.pv = pv; if (escudo != null) c.esc = escudo;
     const pct = Math.max(0, c.pv / c.pvMax * 100), i = $('.hp i', el);
-    i.style.width = pct + '%'; i.className = pct < 30 ? 'bajo' : pct < 60 ? 'medio' : '';
+    i.style.width = pct + '%'; $('.hp b', el).style.width = pct + '%'; i.className = pct < 30 ? 'bajo' : pct < 60 ? 'medio' : '';
     $('.hp u', el).style.width = Math.min(100, c.esc / c.pvMax * 100) + '%';
     $('.hpTxt', el).innerHTML = `<span class="pv">${c.pv}</span>/${c.pvMax}${c.esc > 0 ? ` <span class="e">⛨${c.esc}</span>` : ''}`;
     el.classList.toggle('conEsc', c.esc > 0);
   }
   function centro(el) { const r = $('.cuerpo', el).getBoundingClientRect(), b = $('#campo').getBoundingClientRect(); return { x: r.left - b.left + r.width / 2, y: r.top - b.top + r.height / 2 }; }
-  function rayo(a, b, col) {
-    const A = centro(a), B = centro(b), dx = B.x - A.x, dy = B.y - A.y, d = document.createElement('div');
-    d.className = 'rayo'; d.style.cssText = `left:${A.x}px;top:${A.y}px;width:${Math.hypot(dx, dy)}px;transform:rotate(${Math.atan2(dy, dx)}rad);--cc:${col}`;
-    $('#campo').appendChild(d); setTimeout(() => d.remove(), 400);
-    const s = document.createElement('div'); s.className = 'chispazo'; s.style.cssText = `left:${B.x}px;top:${B.y}px;--cc:${col}`;
-    setTimeout(() => { $('#campo') && $('#campo').appendChild(s); setTimeout(() => s.remove(), 450); }, 160);
-  }
   function clase(el, c, ms) { if (!el) return; el.classList.remove(c); void el.offsetWidth; el.classList.add(c); setTimeout(() => el.classList.remove(c), ms); }
+  const EST_COL = { corrosion: '#d38bff', aturdido: '#ffe03a', miedo: '#ff4fd8', debilitado: '#9fb6c4', lento: '#9fb6c4', expuesto: '#ffb02e', potenciado: '#ff6b5a', veloz: '#19ff6a' };
+  /* la carta sale de la mano (o de arriba si es del rival) y vuela hasta su criatura */
+  function lanzaCarta(el, k, l) {
+    const campo = $('#campo'); if (!el || !campo) return;
+    const B = centro(el), Wc = campo.clientWidth, Hc = campo.clientHeight, A = { x: Wc / 2 + (Math.random() - 0.5) * 60, y: l ? -50 : Hc + 40 };
+    const d = document.createElement('div'); d.className = 'cCast'; d.style.setProperty('--cc', colClase(k.clase));
+    d.innerHTML = `<span>${k.c}</span><b>${esc(k.n)}</b><em>${k.a ? '⚔' + k.a : ''}${k.e ? ' ⛨' + k.e : ''}</em>`;
+    d.style.left = A.x + 'px'; d.style.top = A.y + 'px'; campo.appendChild(d);
+    const dur = 340 / vel, giro = (Math.random() - 0.5) * 30;
+    d.animate([{ transform: `translate(-50%,-50%) scale(.6) rotate(${giro}deg)`, opacity: 0 }, { opacity: 1, offset: 0.2 },
+      { transform: `translate(calc(-50% + ${B.x - A.x}px),calc(-50% + ${B.y - 40 - A.y}px)) scale(1.05) rotate(0deg)`, opacity: 1 }], { duration: dur, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'forwards' });
+    Son.lanza();
+    setTimeout(() => { FX.onda({ x: B.x, y: B.y - 40 }, colClase(k.clase), 46); d.animate([{ opacity: 1, filter: 'brightness(1)' }, { opacity: 0, filter: 'brightness(3)', transform: `translate(calc(-50% + ${B.x - A.x}px),calc(-50% + ${B.y - 40 - A.y}px)) scale(1.5)` }], { duration: 260, fill: 'forwards' }); }, dur);
+    setTimeout(() => d.remove(), dur + 300);
+  }
+  function ko(el, l) {
+    const d = document.createElement('div'); d.className = 'koSello ' + (l ? 'el' : 'yo'); d.textContent = 'K.O.'; el.appendChild(d); setTimeout(() => d.remove(), 1600);
+  }
   async function animar(ev) {
-    const rapido = ev.length > 40 ? 0.7 : 1;
+    const rapido = (ev.length > 40 ? 0.75 : 1) / vel;
+    const T = ms => espera(ms * rapido);
+    let racha = 0, ladoRacha = -1;
     for (const e of ev) {
       if (VISTA !== 'combate') return;
-      const T = ms => espera(ms * rapido);
       switch (e.t) {
         case 'juega': {
-          const el = lu(e.l, e.p);
-          for (const k of e.k) { const n = document.createElement('div'); n.className = 'nomCarta'; n.style.setProperty('--cc', colClase(k.clase)); n.textContent = k.n; el.appendChild(n); setTimeout(() => n.remove(), 1000); Son.carta(); await T(220); }
-          await T(150); break;
+          const el = lu(e.l, e.p); if (!el) break;
+          el.classList.add('activo');
+          for (const k of e.k) { lanzaCarta(el, k, e.l); await T(200); }
+          await T(260); el.classList.remove('activo'); break;
         }
-        case 'esc': setVida(e.l, e.p, null, e.esc); flot(lu(e.l, e.p), '+' + e.v + ' ⛨', 'esc'); Son.escudo(); await T(260); break;
+        case 'esc': { const el = lu(e.l, e.p); setVida(e.l, e.p, null, e.esc); if (el) FX.escudo(centro(el)); flot(el, '+' + e.v + ' ⛨', 'esc'); Son.escudo(); await T(240); break; }
         case 'golpe': {
-          const a = lu(e.l, e.p), b = lu(e.tl, e.tp);
+          const a = lu(e.l, e.p), b = lu(e.tl, e.tp), cl = e.clase;
+          if (e.l === ladoRacha) racha++; else { racha = 1; ladoRacha = e.l; }
           if (a) { clase(a, 'ataca', 520); a.classList.add('activo'); }
-          await T(200);
-          if (a && b) rayo(a, b, colClase(e.clase));
-          await T(130);
-          clase(b, 'golpeado', 380); setVida(e.tl, e.tp, e.pv, e.esc);
-          e.crit ? Son.crit() : Son.golpe(e.v > 150); vib(e.crit ? [30, 30, 60] : 25);
+          await T(170);
+          Son.disparo(cl);
+          if (a && b) await FX.proyectil(centro(a), centro(b), cl, vel);
+          const fuerte = e.v > 150, P = b ? centro(b) : null;
+          if (P) FX.impacto(P, cl, fuerte, e.crit);
+          FX.temblor(e.crit ? 0.75 : fuerte ? 0.45 : 0.28);
+          if (e.crit) { FX.destello('#fff', 0.55); document.body.classList.add('hitstop'); }
+          else if (e.vent > 1) FX.destello(colClase(cl), 0.25);
+          clase(b, e.crit ? 'golpeadoFuerte' : 'golpeado', 420); setVida(e.tl, e.tp, e.pv, e.esc);
+          Son.impacto(fuerte, e.crit); vib(e.crit ? [40, 30, 80] : fuerte ? 35 : 20);
           const extra = (e.crit ? '<small>¡CRÍTICO!</small>' : '') + (e.vent > 1 ? '<small style="color:#19ff6a">SUPEREFICAZ</small>' : e.vent < 1 ? '<small style="color:#9fb6c4">POCO EFICAZ</small>' : '') + (e.at ? '<small>ATRAVIESA</small>' : '');
-          flot(b, '-' + e.v + extra, e.crit ? 'crit' : 'dano');
-          await T(420); if (a) a.classList.remove('activo'); break;
+          flot(b, '-' + e.v + extra, (e.crit ? 'crit' : 'dano') + (e.vent > 1 ? ' super' : ''));
+          if (racha >= 3) comboCartel(racha, e.l);
+          if (e.crit) { await T(200); document.body.classList.remove('hitstop'); }
+          await T(380); if (a) a.classList.remove('activo'); break;
         }
-        case 'falla': { const a = lu(e.l, e.p); clase(a, 'ataca', 520); await T(200); flot(a, 'FALLA<small>' + (e.por === 'miedo' ? 'TIENE MIEDO' : 'ATURDIDO') + '</small>', 'falla'); Son.falla(); await T(450); break; }
-        case 'estado': flot(lu(e.l, e.p), NOM_EST[e.e] || e.e, 'est'); Son.estado(); await T(320); break;
-        case 'cura': { const el = lu(e.l, e.p); setVida(e.l, e.p, e.pv); flot(el, '+' + e.v, 'cura'); clase(el, 'curado', 600); Son.cura(); await T(380); break; }
-        case 'dot': setVida(e.l, e.p, e.pv); flot(lu(e.l, e.p), '-' + e.v + '<small>' + (e.por === 'subita' ? 'SOBRECARGA' : 'CORROSIÓN') + '</small>', 'dot'); Son.golpe(); await T(380); break;
-        case 'cae': { const el = lu(e.l, e.p); el.classList.add('cayendo'); Son.cae(); vib([60, 40, 60]); await T(800); el.classList.remove('cayendo'); el.classList.add('muerto'); (e.l ? S.vista.el : S.vista.yo).cr[e.p].vivo = false; break; }
-        case 'energia': if (e.l === 0) { flot($('#cEn'), (e.v > 0 ? '+' : '') + e.v + ' ⚡', e.v > 0 ? 'cura' : 'dano'); } await T(250); break;
+        case 'falla': { const a = lu(e.l, e.p); clase(a, 'ataca', 520); await T(200); clase(a, 'tambalea', 500); flot(a, 'FALLA<small>' + (e.por === 'miedo' ? 'TIENE MIEDO' : 'ATURDIDO') + '</small>', 'falla'); Son.falla(); await T(450); break; }
+        case 'estado': { const el = lu(e.l, e.p); if (el) FX.estado(centro(el), EST_COL[e.e] || '#fff'); flot(el, NOM_EST[e.e] || e.e, 'est'); Son.estado(); await T(320); break; }
+        case 'cura': { const el = lu(e.l, e.p); setVida(e.l, e.p, e.pv); if (el) FX.cura(centro(el)); flot(el, '+' + e.v, 'cura'); clase(el, 'curado', 700); Son.cura(); await T(400); break; }
+        case 'dot': { const el = lu(e.l, e.p); setVida(e.l, e.p, e.pv); if (el) FX.veneno(centro(el)); clase(el, 'golpeado', 380); flot(el, '-' + e.v + '<small>' + (e.por === 'subita' ? 'SOBRECARGA' : 'CORROSIÓN') + '</small>', 'dot'); Son.golpe(); await T(380); break; }
+        case 'cae': {
+          const el = lu(e.l, e.p); if (!el) break;
+          await T(120);
+          el.classList.add('cayendo'); Son.ko(); vib([80, 40, 120]);
+          FX.explosion(centro(el), (e.l ? S.vista.el : S.vista.yo).cr[e.p].genes.c); FX.temblor(0.9); FX.destello('#ff7a2e', 0.4); ko(el, e.l);
+          await T(950); el.classList.remove('cayendo'); el.classList.add('muerto'); (e.l ? S.vista.el : S.vista.yo).cr[e.p].vivo = false; break;
+        }
+        case 'energia': if (e.l === 0) { flot($('#cEn'), (e.v > 0 ? '+' : '') + e.v + ' ⚡', e.v > 0 ? 'cura' : 'dano'); clase($('#cEn'), 'pulso', 600); } await T(250); break;
         case 'robar': if (e.l === 0 && e.n) toast('Robas ' + e.n + ' carta' + (e.n > 1 ? 's' : '')); await T(150); break;
-        case 'aviso': banner(e.m.split('!')[0] + '!', 'ATENCIÓN', '#ff2b4e'); await T(1200); break;
+        case 'aviso': FX.destello('#ff2b4e', 0.35); FX.temblor(0.4); banner(e.m.split('!')[0] + '!', 'ATENCIÓN', '#ff2b4e'); await T(1200); break;
+        case 'fin': {
+          const campo = $('#campo'); if (!campo) break;
+          const gano = e.r === 'gana' || e.r === 0 || e.r === '0' || e.r === 'yo';
+          await espera(300);
+          campo.classList.add(e.r === 'empate' ? 'finEmpate' : gano ? 'finGana' : 'finPierde');
+          if (gano) $$('.lu.yo:not(.muerto)').forEach((x, i) => setTimeout(() => { x.classList.add('celebra'); FX.onda(centro(x), '#19ff6a', 80); }, i * 120));
+          break;
+        }
       }
     }
     await espera(250);
+  }
+  function comboCartel(n, l) {
+    const campo = $('#campo'); if (!campo) return; let d = $('.combo', campo);
+    if (!d) { d = document.createElement('div'); d.className = 'combo'; campo.appendChild(d); }
+    d.className = 'combo ' + (l ? 'el' : 'yo'); d.innerHTML = `<b>${n}</b> COMBO`; void d.offsetWidth; d.classList.add('show');
+    clearTimeout(d._t); d._t = setTimeout(() => d.remove(), 1400);
+  }
+  function cartelRonda(n) {
+    const campo = $('#campo'); if (!campo) return;
+    const d = document.createElement('div'); d.className = 'cRonda'; d.innerHTML = `<small>RONDA</small><b>${n}</b>`; campo.appendChild(d); Son.ronda(); setTimeout(() => d.remove(), 1300);
   }
   function fin(pr) {
     const gana = pr.resultado === 'gana', emp = pr.resultado === 'empate';

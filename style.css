@@ -470,3 +470,97 @@ canvas#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0}
 }
 @media (max-width:380px){.saldo.ener{display:none}}
 @media (min-width:900px) and (min-height:560px){.login{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}}
+
+/* ==========================================================
+   COMBATE ESPECTACULAR (efectos v2)
+   ========================================================== */
+.campo2{will-change:transform}
+.cfx{position:absolute;inset:0;width:100%;height:100%;z-index:14;pointer-events:none}
+/* plataforma holográfica bajo cada criatura */
+.lu .pad{position:absolute;left:49%;width:62%;aspect-ratio:3.4/1;bottom:-2%;transform:translateX(-50%);border-radius:50%;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse,color-mix(in srgb,var(--cc) 55%,transparent) 0,color-mix(in srgb,var(--cc) 18%,transparent) 45%,transparent 70%);
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--cc) 60%,transparent),0 0 22px color-mix(in srgb,var(--cc) 45%,transparent);animation:padLuz 2.6s ease-in-out infinite}
+.lu .pad::after{content:'';position:absolute;inset:-7px -10px;border-radius:50%;border:1px dashed color-mix(in srgb,var(--cc) 70%,transparent);animation:padLuz 1.8s ease-in-out infinite reverse}
+@keyframes padLuz{50%{opacity:.6}}
+.lu .cuerpo .rb{z-index:1}
+.lu.muerto .pad{opacity:.15;animation:none}
+/* barra de vida con daño "fantasma" */
+.lu .hp b{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#fff,#ffd0d6);transition:width .55s .38s cubic-bezier(.4,0,.2,1)}
+.lu .hp i{z-index:1}.lu .hp u{z-index:2}
+/* entrada de las criaturas */
+.lu.entra .cuerpo{animation:caeArena .7s cubic-bezier(.2,1.4,.4,1) backwards;animation-delay:var(--d)}
+.lu.entra .pad{animation:padEntra .6s backwards;animation-delay:var(--d)}
+@keyframes caeArena{from{transform:translateY(-120%) scale(.6);opacity:0;filter:brightness(4)}60%{opacity:1}}
+@keyframes padEntra{from{transform:translateX(-50%) scale(0);opacity:0}}
+/* golpes */
+.lu.golpeadoFuerte .cuerpo{animation:golpeF .45s}
+@keyframes golpeF{0%,100%{transform:none;filter:none}15%{transform:translateX(-14px) scale(.94);filter:brightness(4) saturate(0)}35%{transform:translateX(11px) scale(1.04)}55%{transform:translateX(-6px)}75%{transform:translateX(3px)}}
+.lu.tambalea .cuerpo{animation:tambalea .5s}
+@keyframes tambalea{25%{transform:rotate(-8deg)}50%{transform:rotate(6deg)}75%{transform:rotate(-3deg)}}
+.lu.activo .cuerpo{filter:drop-shadow(0 0 10px var(--cc)) drop-shadow(0 0 2px #fff)}
+.lu.activo .pad{animation:padActivo .5s ease-in-out infinite alternate}
+@keyframes padActivo{to{box-shadow:0 0 0 2px var(--cc),0 0 40px var(--cc)}}
+.lu.cayendo .cuerpo{animation:caeKO 1s forwards}
+@keyframes caeKO{0%{filter:brightness(1)}10%{transform:translateX(-6px);filter:brightness(4) saturate(0)}20%{transform:translateX(6px)}35%{transform:rotate(-12deg) translateY(-6%);clip-path:inset(0 0 0 0)}
+  55%{clip-path:inset(20% 0 30% 0);transform:rotate(-14deg) translate(4%,0)}65%{clip-path:inset(0 0 0 0);transform:rotate(18deg) translate(-3%,6%)}
+  100%{transform:translateY(22%) rotate(28deg) scale(.82);filter:grayscale(1) brightness(.45)}}
+.lu.curado .cuerpo{animation:curaLuz .7s}
+@keyframes curaLuz{40%{filter:drop-shadow(0 0 18px #19ff6a) brightness(1.4)}}
+.lu.celebra .cuerpo{animation:salta .55s ease-in-out 3}
+@keyframes salta{50%{transform:translateY(-18%) scale(1.06)}}
+.koSello{position:absolute;left:50%;top:32%;z-index:25;font-family:Orbitron;font-weight:900;font-size:clamp(30px,7vw,52px);color:#ff2b4e;letter-spacing:.06em;pointer-events:none;
+  text-shadow:0 0 10px #ff2b4e,0 0 30px #ff2b4e,3px 3px 0 #000;transform:translate(-50%,-50%) rotate(-12deg);animation:koSello 1.5s cubic-bezier(.2,1.6,.4,1) forwards}
+@keyframes koSello{0%{opacity:0;transform:translate(-50%,-50%) rotate(-12deg) scale(3)}18%{opacity:1;transform:translate(-50%,-50%) rotate(-12deg) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-80%) rotate(-12deg) scale(1)}}
+/* números de daño */
+.flot{animation-name:flotV2}
+.flot.crit{font-size:40px;animation-name:flotCrit;color:#ffd23f;text-shadow:0 0 8px #000,0 0 18px #ff8a00,0 0 36px #ffd23f}
+.flot.super{color:#ff3df0}
+@keyframes flotV2{0%{opacity:0;transform:translate(-50%,10px) scale(.4)}12%{opacity:1;transform:translate(-50%,-8px) scale(1.35)}25%{transform:translate(-50%,-12px) scale(1)}100%{opacity:0;transform:translate(-50%,-70px)}}
+@keyframes flotCrit{0%{opacity:0;transform:translate(-50%,0) scale(3) rotate(-8deg)}14%{opacity:1;transform:translate(-50%,-10px) scale(1.1) rotate(-4deg)}22%{transform:translate(-50%,-14px) scale(1.25) rotate(-4deg)}35%{transform:translate(-50%,-16px) scale(1) rotate(-4deg)}100%{opacity:0;transform:translate(-50%,-80px) rotate(-4deg)}}
+/* carta lanzada */
+.cCast{position:absolute;z-index:22;width:66px;height:92px;border-radius:10px;pointer-events:none;padding:22px 5px 5px;text-align:center;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--cc) 45%,#0a1020),#0a1020 70%);border:2px solid var(--cc);box-shadow:0 0 18px var(--cc),inset 0 0 14px color-mix(in srgb,var(--cc) 40%,transparent);will-change:transform}
+.cCast span{position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font:900 11px Orbitron;color:#03140a;background:radial-gradient(circle at 35% 30%,#fff,var(--v) 55%,#0a8a3a)}
+.cCast b{display:block;font:700 8.5px/1.15 Orbitron;color:#fff;min-height:30px}
+.cCast em{display:block;font:900 10px Orbitron;font-style:normal;color:#ffd0c8;margin-top:3px}
+/* destello de pantalla */
+.cFlash{position:absolute;inset:0;z-index:40;pointer-events:none;background:var(--fc);mix-blend-mode:screen;animation:cFlash .4s ease-out forwards}
+@keyframes cFlash{from{opacity:var(--fo)}to{opacity:0}}
+body.hitstop .rb *{animation-play-state:paused!important}
+/* presentación VS */
+.cIntro{position:absolute;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;gap:2vw;pointer-events:none;overflow:hidden;
+  background:linear-gradient(115deg,rgba(0,229,255,.22) 0 49.6%,#fff 49.6% 50.4%,rgba(255,43,214,.22) 50.4%),rgba(5,6,15,.82);backdrop-filter:blur(3px);animation:fade .25s}
+.cIntro.fuera{animation:ciFuera .55s forwards}
+@keyframes ciFuera{to{opacity:0;transform:scale(1.15)}}
+.ciLado{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+.ciLado.yo{animation:ciIzq .55s cubic-bezier(.2,1.2,.3,1) backwards .1s}.ciLado.el{animation:ciDer .55s cubic-bezier(.2,1.2,.3,1) backwards .1s}
+@keyframes ciIzq{from{transform:translateX(-110%)}}@keyframes ciDer{from{transform:translateX(110%)}}
+.ciLado b{font:900 clamp(15px,3.6vw,30px) Orbitron;letter-spacing:.08em;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 6px}
+.ciLado.yo b{color:var(--c);text-shadow:0 0 14px var(--c)}.ciLado.el b{color:var(--m);text-shadow:0 0 14px var(--m)}
+.ciEq{display:flex;justify-content:center}
+.ciEq i{width:clamp(56px,13vw,120px);margin:0 -8px;filter:drop-shadow(0 0 10px var(--cc))}
+.ciLado.el .ciEq i .rb{transform:scaleX(-1)}
+.ciEq .rb{width:100%;height:auto}
+.ciVs{font:900 clamp(44px,12vw,110px) Orbitron;font-style:italic;color:#fff;text-shadow:0 0 18px #ffd23f,0 0 50px #ff2bd6,4px 4px 0 #ff2b4e;animation:ciVs .6s cubic-bezier(.2,1.8,.4,1) backwards .4s;flex:0 0 auto}
+@keyframes ciVs{from{transform:scale(4) rotate(-20deg);opacity:0}}
+@media (orientation:portrait){.cIntro{flex-direction:column;background:linear-gradient(170deg,rgba(0,229,255,.22) 0 49.6%,#fff 49.6% 50.4%,rgba(255,43,214,.22) 50.4%),rgba(5,6,15,.82)}
+  .ciLado{flex:0 0 auto}.ciLado.yo{order:3}.ciLado.el{order:1}.ciVs{order:2}
+  @keyframes ciIzq{from{transform:translateX(-120%)}}}
+/* cartel de ronda y combo */
+.cRonda{position:absolute;left:0;right:0;top:50%;z-index:30;pointer-events:none;text-align:center;transform:translateY(-50%);padding:8px 0;
+  background:linear-gradient(90deg,transparent,rgba(0,229,255,.25) 30%,rgba(0,229,255,.25) 70%,transparent);border-top:1px solid rgba(0,229,255,.5);border-bottom:1px solid rgba(0,229,255,.5);animation:cRonda 1.25s cubic-bezier(.2,.8,.2,1) forwards}
+.cRonda small{display:block;font:700 11px Orbitron;letter-spacing:.5em;color:var(--c)}
+.cRonda b{font:900 34px Orbitron;color:#fff;text-shadow:0 0 14px var(--c)}
+@keyframes cRonda{0%{opacity:0;clip-path:inset(0 50% 0 50%)}18%{opacity:1;clip-path:inset(0 0 0 0)}75%{opacity:1}100%{opacity:0;transform:translateY(-50%) scaleY(.2)}}
+.combo{position:absolute;top:8px;z-index:31;pointer-events:none;font:900 14px Orbitron;letter-spacing:.12em;color:#fff;opacity:0}
+.combo.yo{left:10px}.combo.el{right:10px}
+.combo b{font-size:30px;color:#ffd23f;text-shadow:0 0 12px #ff8a00}
+.combo.show{animation:combo 1.3s forwards}
+@keyframes combo{0%{opacity:0;transform:scale(2)}12%{opacity:1;transform:scale(1)}80%{opacity:1}100%{opacity:0}}
+/* final */
+.campo2.finGana::before{content:'';position:absolute;inset:-20%;z-index:0;pointer-events:none;background:repeating-conic-gradient(from 0deg at 50% 60%,rgba(25,255,106,.16) 0 8deg,transparent 8deg 20deg);animation:gira 14s linear infinite,fade .8s}
+.campo2.finPierde{filter:grayscale(.75) brightness(.7);transition:filter 1.2s}
+.energia.pulso{animation:pop .5s}
+/* botón de velocidad */
+.ibtn.vel{font:900 13px Orbitron;width:auto;padding:0 10px;color:var(--o)}
+@media (prefers-reduced-motion:reduce){.lu .pad,.lu .pad::after,.campo2.finGana::before{animation:none}}

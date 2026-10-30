@@ -84,7 +84,21 @@ const Son = (() => {
     pierde() { [392, 330, 262, 196].forEach((f, i) => tono(f, 0.4, 'sawtooth', 0.1, 1, i * 0.16)); },
     moneda() { tono(988, 0.08, 'square', 0.1); tono(1319, 0.25, 'square', 0.1, 1, 0.08); },
     eclosion() { ruido(0.6, 0.4, 8000, 400); [392, 523, 659, 784, 1047].forEach((f, i) => tono(f, 0.4, 'sine', 0.14, 1, 0.3 + i * 0.08)); },
-    nfc() { tono(1500, 0.08, 'sine', 0.12); tono(2000, 0.12, 'sine', 0.12, 1, 0.1); }
+    nfc() { tono(1500, 0.08, 'sine', 0.12); tono(2000, 0.12, 'sine', 0.12, 1, 0.1); },
+    // combate: disparo según la clase, impacto, K.O., carta lanzada, VS
+    disparo(cl) {
+      if (cl === 'plasma') { ruido(0.35, 0.3, 900, 3500); tono(180, 0.3, 'sawtooth', 0.1, 0.5); }
+      else if (cl === 'voltio') { tono(1800, 0.18, 'square', 0.08, 0.15); ruido(0.2, 0.25, 9000, 2000); tono(90, 0.15, 'sawtooth', 0.12, 1.5); }
+      else if (cl === 'bio') { tono(300, 0.25, 'sine', 0.16, 2.4); tono(600, 0.18, 'triangle', 0.06, 1.8, 0.05); }
+      else if (cl === 'cromo') { tono(1047, 0.35, 'sine', 0.1, 0.98); tono(2890, 0.25, 'sine', 0.05, 0.97); ruido(0.08, 0.25, 7000, 3000); }
+      else if (cl === 'cuantico') { tono(400, 0.22, 'sine', 0.13, 4); tono(1600, 0.18, 'square', 0.04, 0.5, 0.04); }
+      else { tono(160, 0.45, 'sawtooth', 0.12, 0.45); tono(163, 0.45, 'sawtooth', 0.1, 0.42); ruido(0.4, 0.15, 600, 200); }
+    },
+    impacto(fuerte, crit) { ruido(crit ? 0.45 : 0.22, crit ? 0.7 : fuerte ? 0.55 : 0.4, crit ? 5000 : 2600, 120); tono(crit ? 70 : fuerte ? 85 : 120, crit ? 0.4 : 0.22, 'sine', 0.45, 0.35); if (crit) tono(1400, 0.25, 'square', 0.08, 0.4, 0.04); },
+    ko() { ruido(1.1, 0.6, 3000, 60); tono(60, 0.9, 'sine', 0.5, 0.4); tono(400, 0.6, 'sawtooth', 0.12, 0.1, 0.05); },
+    lanza() { ruido(0.16, 0.18, 1200, 6000); tono(500, 0.12, 'triangle', 0.08, 2); },
+    vs() { ruido(0.8, 0.45, 200, 4000); tono(55, 1, 'sawtooth', 0.22, 1); tono(110, 0.6, 'square', 0.1, 1, 0.5); tono(880, 0.4, 'square', 0.06, 1, 0.55); },
+    ronda() { tono(660, 0.08, 'square', 0.07); tono(990, 0.16, 'square', 0.07, 1, 0.08); ruido(0.15, 0.12, 4000, 8000, 0.04); }
   };
 })();
 
