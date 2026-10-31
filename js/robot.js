@@ -172,6 +172,7 @@ var ROBOT = (function () {
   }
   /* =========== CRIATURA: cuerpo con cara + ojo/boca de otra clase + efecto de espalda =========== */
   var FR = { w: 1024, h: 907 };                                   // marco común de los 6 cuerpos
+  var CUERNO = {"plasma":[826,-25,288,391],"voltio":[803,-69,315,360],"bio":[799,-56,284,388],"cromo":[804,-59,316,347],"cuantico":[791,-55,299,321],"sombra":[817,-107,289,378]};   // cuernos nuevos en el marco común (van por delante de la ceja)
   var COLA_FRENTE = { cuantico: 1 };   // colas con una parte que va por delante de la pata
   var COLA = {"plasma":[-101,32,214,614],"voltio":[-99,-1,194,608],"bio":[-113,-26,219,671],"cromo":[-113,28,232,576],"cuantico":[-100,447,490,480],"sombra":[-112,-108,295,725]};   // colas nuevas en el marco común (x, y, ancho, alto)
   var CARA = { ojo: [587, 133, 307, 307], boca: [624, 396, 363, 305] };
@@ -234,11 +235,12 @@ var ROBOT = (function () {
       '<g class="rb-cola' + (COLA_FRENTE[pp.cola.c] ? ' fija' : '') + '">' + pieza('cola_' + (COLA[pp.cola.c] ? pp.cola.c : cls), COLA[pp.cola.c] || COLA[cls]) + '</g>' +
       '<g class="rb-fx">' + efectos + '</g>' +
       '<g class="rb-ant">' + img(nom('antenas', pp.antenas), an[0], an[1], 48, 66, .5, 1) + '</g>' +
-      '<g class="rb-cuerno">' + img(nom('cuerno', pp.cuerno), cu[0], cu[1], 40, 52, .5, 1) + '</g>' +
+      
       '<image href="' + BASE + 'cuerpo_' + cls + '.webp?v=14" x="' + X0 + '" y="' + Y0.toFixed(1) + '" width="' + BW + '" height="' + BH.toFixed(1) + '"' + (tinte ? ' style="filter:' + tinte + '"' : '') + '/>' +
       (COLA_FRENTE[pp.cola.c] ? pieza('cola_' + pp.cola.c + '_frente', COLA[pp.cola.c]) : '') +
       (pp.ojos.c !== cls && CX.CLASES[pp.ojos.c] ? pieza('cara_ojo_' + pp.ojos.c, CARA.ojo) : '') +
       (pp.boca.c !== cls && CX.CLASES[pp.boca.c] ? pieza('cara_boca_' + pp.boca.c, CARA.boca) : '') +
+      '<g class="rb-cuerno">' + pieza('cuerno_' + (CUERNO[pp.cuerno.c] ? pp.cuerno.c : cls), CUERNO[pp.cuerno.c] || CUERNO[cls]) + '</g>' +
       '</g></svg>';
   }
   /* huevo con su clase (o '?' si no se conoce) */
