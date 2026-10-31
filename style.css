@@ -675,3 +675,9 @@ body.hitstop .rb *{animation-play-state:paused!important}
 @keyframes ciLatido{50%{box-shadow:0 0 34px rgba(255,140,40,.95);transform:scale(1.02)}}
 /* móvil vertical: sin el logo de Futurmovil en la barra para no tapar los saldos */
 @media (max-width:600px){.marca img{display:none}.marca b{display:none}.marca{flex:0 0 auto;width:34px;height:34px;border-radius:10px;background:url(img/icon-192.png?v=2) center/cover;box-shadow:0 0 10px rgba(255,77,46,.5)}}
+/* inicio: las 3 criaturas del equipo siempre caben (móvil vertical) */
+@media (max-width:600px){
+  .escenario{width:100%;height:auto;min-height:110px;padding-top:14px}
+  .escenario .rb{flex:0 1 33%;min-width:0;max-width:34%;height:auto;aspect-ratio:240/220;margin:0 -1.5%}
+  .escenario .rb:nth-child(2){max-width:38%;flex-basis:38%;height:auto}
+}
