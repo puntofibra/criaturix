@@ -225,5 +225,8 @@ var MOTOR = (function () {
     if (!a && !b) B.fin = 'empate'; else if (!b) B.fin = 'gana'; else if (!a) B.fin = 'pierde';
   }
 
-  return { crear: crear, vista: vista, ronda: ronda, ia: ia, MAX_EN: MAX_EN };
+  /* comprueba una jugada sin tocar el combate (lanza error si no vale) */
+  function comprobar(B, l, jug) { validar(JSON.parse(JSON.stringify(B)), l, jug); }
+
+  return { crear: crear, vista: vista, ronda: ronda, ia: ia, comprobar: comprobar, MAX_EN: MAX_EN };
 })();

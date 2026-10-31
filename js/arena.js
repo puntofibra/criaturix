@@ -70,7 +70,7 @@ var ARENA = (function () {
     raf = requestAnimationFrame(bucle);
     if (document.hidden) return;
     tam();
-    var t = (now - t0) / 1000, hz = HZ(), cxp = W / 2;
+    var t = Math.max(0, (now - t0) / 1000), hz = HZ(), cxp = W / 2;
     g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
     g.drawImage(cielo, 0, 0);
 
