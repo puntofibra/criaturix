@@ -264,15 +264,12 @@ var ROBOT = (function () {
   function huevo(clase, opts) {
     opts = opts || {};
     var id = 'h' + (++n), K = clase && CX.CLASES[clase] ? CX.CLASES[clase] : { col: '#19ff6a', col2: '#00e5ff' };
-    return '<svg class="rb huevo ' + (opts.cls || '') + '" viewBox="0 0 240 220" xmlns="http://www.w3.org/2000/svg"><defs>' +
-      '<radialGradient id="hg' + id + '" cx=".38" cy=".3" r=".9"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#b9c4d2"/><stop offset="1" stop-color="#4a5666"/></radialGradient>' +
-      '<filter id="hf' + id + '" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>' +
-      '<ellipse cx="120" cy="206" rx="46" ry="7" fill="' + K.col + '" opacity=".25"/>' +
-      '<g class="hv-cuerpo"><path d="M120 34 C160 34 184 104 182 140 C180 180 154 200 120 200 C86 200 60 180 58 140 C56 104 80 34 120 34Z" fill="url(#hg' + id + ')" stroke="#1a2230" stroke-width="3"/>' +
-      '<path d="M64 120 L88 112 L104 128 L124 108 L142 126 L160 110 L178 120" stroke="' + K.col + '" stroke-width="4" fill="none" stroke-linejoin="round" filter="url(#hf' + id + ')"/>' +
-      '<path d="M66 150 Q120 168 174 150" stroke="' + K.col2 + '" stroke-width="2" fill="none" opacity=".7"/>' +
-      '<circle class="hv-luz" cx="120" cy="150" r="10" fill="' + K.col + '" filter="url(#hf' + id + ')"/>' +
-      '<ellipse cx="100" cy="72" rx="12" ry="22" fill="#fff" opacity=".45" transform="rotate(18 100 72)"/></g></svg>';
+    var h = 172, w = h * 600 / 839, x = 120 - w / 2, y = 202 - h;
+    return '<svg class="rb huevo ' + (opts.cls || '') + '" viewBox="0 0 240 220" overflow="visible" xmlns="http://www.w3.org/2000/svg"><defs>' +
+      '<radialGradient id="ha' + id + '" cx=".5" cy=".55" r=".5"><stop offset="0" stop-color="' + K.col + '" stop-opacity=".55"/><stop offset=".6" stop-color="' + K.col + '" stop-opacity=".18"/><stop offset="1" stop-color="' + K.col + '" stop-opacity="0"/></radialGradient></defs>' +
+      '<ellipse cx="120" cy="206" rx="52" ry="7" fill="' + K.col + '" opacity=".3"/>' +
+      '<ellipse class="hv-luz" cx="120" cy="118" rx="88" ry="104" fill="url(#ha' + id + ')"/>' +
+      '<g class="hv-cuerpo"><image href="img/huevo.webp?v=1" x="' + x.toFixed(1) + '" y="' + y + '" width="' + w.toFixed(1) + '" height="' + h + '"/></g></svg>';
   }
   return { svg: svg, huevo: huevo };
 })();
