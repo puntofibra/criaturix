@@ -170,29 +170,73 @@ var ROBOT = (function () {
     if (h > bh) { h = bh; w = bh / r; }
     return '<image href="' + BASE + k + '.webp?v=10" x="' + (x - w * ax).toFixed(1) + '" y="' + (y - h * ay).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '"' + (extra || '') + '/>';
   }
+  /* =========== CRIATURA: cuerpo con cara + ojo/boca de otra clase + efecto de espalda =========== */
+  var FR = { w: 1024, h: 907 };                                   // marco común de los 6 cuerpos
+  var CARA = { ojo: [587, 133, 307, 307], boca: [624, 396, 363, 305] };
+  var TUBOS = {   // boca de los 3 tubos de cada cuerpo (x, y en el marco, ángulo: 0 = arriba)
+    plasma:   [[100, 262, -55], [180, 135, -35], [290, 82, -12]],
+    voltio:   [[100, 262, -55], [180, 135, -35], [290, 82, -12]],
+    cromo:    [[100, 262, -55], [180, 135, -35], [290, 82, -12]],
+    bio:      [[110, 235, -45], [180, 112, -30], [310, 50, -10]],
+    cuantico: [[45, 215, -60], [112, 57, -30], [255, 15, -15]],
+    sombra:   [[78, 240, -55], [110, 62, -35], [275, 18, -15]]
+  };
+  function fxEspalda(c, id, i) {
+    var d = ' style="animation-delay:' + (-i * 0.37).toFixed(2) + 's"', s = '';
+    switch (c) {
+      case 'plasma':
+        s = '<path class="fx-llama"' + d + ' d="M-7 1 C-11 -9 -5 -17 -1 -31 C1 -24 5 -21 4 -14 C9 -10 9 -4 7 1Z" fill="url(#fl' + id + ')"/>' +
+            '<path class="fx-llama f2"' + d + ' d="M-4 1 C-6 -6 -2 -11 0 -19 C3 -12 6 -6 4 1Z" fill="#ffe27a"/>'; break;
+      case 'voltio':
+        s = '<g class="fx-rayo"' + d + '><path d="M0 0 L-5 -9 L3 -13 L-4 -22 L4 -28 L-1 -38" stroke="#ffe03a" stroke-width="3" fill="none" stroke-linejoin="round"/><path d="M0 0 L-5 -9 L3 -13 L-4 -22 L4 -28 L-1 -38" stroke="#fff" stroke-width="1.1" fill="none"/></g>' +
+            '<g class="fx-rayo r2"' + d + '><path d="M0 0 L5 -7 L-2 -12 L5 -19 L-1 -26" stroke="#fff6a8" stroke-width="2" fill="none" stroke-linejoin="round"/></g>' +
+            '<circle class="fx-chispa" cx="0" cy="-2" r="3" fill="#fff6a8"' + d + '/>'; break;
+      case 'bio':
+        s = '<g class="fx-raiz"' + d + '><path d="M0 0 C-7 -8 6 -14 -1 -23 C-6 -29 3 -33 1 -38" stroke="#2f8f3a" stroke-width="3.4" fill="none" stroke-linecap="round"/><path d="M0 0 C-7 -8 6 -14 -1 -23 C-6 -29 3 -33 1 -38" stroke="#19ff6a" stroke-width="1.2" fill="none" stroke-linecap="round" opacity=".8"/>' +
+            '<path d="M-1 -23 q-8 -3 -10 -10 q7 1 10 10z" fill="#19ff6a"/></g>' +
+            '<path class="fx-brillo"' + d + ' d="M5 -30 l1.4 3.6 3.6 1.4 -3.6 1.4 -1.4 3.6 -1.4 -3.6 -3.6 -1.4 3.6 -1.4z" fill="#b6ff3a"/>' +
+            '<circle class="fx-brillo b2" cx="-6" cy="-16" r="1.6" fill="#d8ffb0"' + d + '/>'; break;
+      case 'cromo':
+        s = [0, 1, 2].map(function (k) { return '<circle class="fx-humo" cx="0" cy="-3" r="5" fill="#9fd4ff" filter="url(#bl' + id + ')" style="animation-delay:' + (-(k * 0.6 + i * 0.25)).toFixed(2) + 's"/>'; }).join(''); break;
+      case 'cuantico':
+        s = '<path class="fx-haz"' + d + ' d="M-3 0 L3 0 L9 -46 L-9 -46Z" fill="url(#hz' + id + ')"/>' +
+            '<path class="fx-estrella"' + d + ' d="M0 -12 L2 -2 L12 0 L2 2 L0 12 L-2 2 L-12 0 L-2 -2Z" fill="#fff"/>'; break;
+      default:  // sombra: llamas finas + humo morado
+        s = [0, 1].map(function (k) { return '<circle class="fx-humo h2" cx="0" cy="-4" r="4" fill="#8a4ac9" filter="url(#bl' + id + ')" style="animation-delay:' + (-(k * 0.9 + i * 0.3)).toFixed(2) + 's"/>'; }).join('') +
+            '<path class="fx-llama fina"' + d + ' d="M-2.5 1 C-4 -10 0 -18 -1 -34 C2 -22 4 -12 2.5 1Z" fill="url(#fs' + id + ')"/>' +
+            '<path class="fx-llama fina f2"' + d + ' d="M-1.2 1 C3 -8 -1 -14 3 -24 C3 -14 4 -6 1.2 1Z" fill="#ff4fd8"/>';
+    }
+    return s;
+  }
   function svg(genes, opts) {
     opts = opts || {};
     if (!genes || !genes.p) return '';
-    var cls = genes.c, K = C(cls), A = ANC[cls] || ANC.cromo;
+    var cls = CX.CLASES[genes.c] ? genes.c : 'cromo', K = C(cls), id = 'r' + (++n);
     var pp = {}; CX.SLOTS.forEach(function (s) { pp[s] = CX.parteGen(genes.p[s][0]); });
-    var kc = 'cuerpo_' + (RAT['cuerpo_' + cls] ? cls : 'cromo'), r = RAT[kc];
-    var BW = 160, BH = BW * r, X0 = 52, Y0 = 198 - BH;          // caja del cuerpo
-    var P = function (fx, fy) { return [X0 + fx * BW, Y0 + fy * BH]; };
+    var BW = 160, s = BW / FR.w, BH = FR.h * s, X0 = 50, Y0 = 200 - BH;
+    var P = function (x, y) { return [X0 + x * s, Y0 + y * s]; };
     var tinte = TINTE[genes.col || 0];
-    var e = P(.30, A.t30 + .16), an = P(.52, A.t55 + .10), cu = P(.80, A.t78 + .10), co = P(A.L + .07, .56),
-        oj = P(A.ox, A.oy), bo = P(A.ox + .08, A.oy + .18);
-    var out = '<svg class="rb ' + (opts.cls || '') + '" viewBox="0 0 240 220" overflow="visible" xmlns="http://www.w3.org/2000/svg">' +
-      '<ellipse class="rb-sombra" cx="124" cy="200" rx="68" ry="7" fill="' + K.col + '" opacity=".25"/>' +
+    var pieza = function (k, box) { return '<image href="' + BASE + k + '.webp?v=11" x="' + (X0 + box[0] * s).toFixed(1) + '" y="' + (Y0 + box[1] * s).toFixed(1) + '" width="' + (box[2] * s).toFixed(1) + '" height="' + (box[3] * s).toFixed(1) + '"/>'; };
+    var ce = CX.CLASES[pp.espalda.c] ? pp.espalda.c : cls;
+    var efectos = (TUBOS[cls] || TUBOS.plasma).map(function (t, i) {
+      var p = P(t[0], t[1]);
+      return '<g transform="translate(' + p[0].toFixed(1) + ' ' + p[1].toFixed(1) + ') rotate(' + t[2] + ')">' + fxEspalda(ce, id, i) + '</g>';
+    }).join('');
+    var an = P(560, 64 + 40), cu = P(770, 120 + 40), co = P(70, 520);
+    var defs = '<defs><linearGradient id="fl' + id + '" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fff2a0"/><stop offset=".35" stop-color="#ffb02e"/><stop offset=".75" stop-color="#ff4d2e"/><stop offset="1" stop-color="#ff2a10" stop-opacity=".2"/></linearGradient>' +
+      '<linearGradient id="hz' + id + '" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fff"/><stop offset=".3" stop-color="#8af9ff" stop-opacity=".9"/><stop offset="1" stop-color="#00e5ff" stop-opacity="0"/></linearGradient>' +
+      '<linearGradient id="fs' + id + '" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ffd0f6"/><stop offset=".4" stop-color="#ff4fd8"/><stop offset="1" stop-color="#b14bff" stop-opacity=".1"/></linearGradient><filter id="bl' + id + '" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="1.6"/></filter></defs>';
+    return '<svg class="rb ' + (opts.cls || '') + '" viewBox="0 0 240 220" overflow="visible" xmlns="http://www.w3.org/2000/svg">' + defs +
+      '<ellipse class="rb-sombra" cx="122" cy="203" rx="70" ry="7" fill="' + K.col + '" opacity=".25"/>' +
       '<g class="rb-cuerpo">' +
-      '<g class="rb-cola">' + img(nom('cola', pp.cola), co[0], co[1], 68, 56, 1, .5) + '</g>' +
-      '<g class="rb-espalda">' + img(nom('espalda', pp.espalda), e[0], e[1], 86, 96, .5, 1) + '</g>' +
-      '<g class="rb-ant">' + img(nom('antenas', pp.antenas), an[0], an[1], 56, 76, .5, 1) + '</g>' +
-      '<g class="rb-cuerno">' + img(nom('cuerno', pp.cuerno), cu[0], cu[1], 44, 58, .5, 1) + '</g>' +
-      img(kc, X0, Y0, BW, 999, 0, 0, tinte ? ' style="filter:' + tinte + '"' : '') +
-      '<g class="rb-ojos">' + img(nom('ojos', pp.ojos), oj[0], oj[1], 26, 26, .5, .5) + '</g>' +
-      '<g class="rb-boca">' + img(nom('boca', pp.boca), bo[0], bo[1], 45, 40, .5, .5) + '</g>' +
+      '<g class="rb-cola">' + img(nom('cola', pp.cola), co[0], co[1], 64, 52, 1, .5) + '</g>' +
+      '<g class="rb-fx">' + efectos + '</g>' +
+      '<g class="rb-ant">' + img(nom('antenas', pp.antenas), an[0], an[1], 48, 66, .5, 1) + '</g>' +
+      '<g class="rb-cuerno">' + img(nom('cuerno', pp.cuerno), cu[0], cu[1], 40, 52, .5, 1) + '</g>' +
+      '<image href="' + BASE + 'cuerpo_' + cls + '.webp?v=11" x="' + X0 + '" y="' + Y0.toFixed(1) + '" width="' + BW + '" height="' + BH.toFixed(1) + '"' + (tinte ? ' style="filter:' + tinte + '"' : '') + '/>' +
+      (pp.ojos.c !== cls && CX.CLASES[pp.ojos.c] ? pieza('cara_ojo_' + pp.ojos.c, CARA.ojo) : '') +
+      (pp.boca.c !== cls && CX.CLASES[pp.boca.c] ? pieza('cara_boca_' + pp.boca.c, CARA.boca) : '') +
       '</g></svg>';
-    return out;
   }
   /* huevo con su clase (o '?' si no se conoce) */
   function huevo(clase, opts) {
