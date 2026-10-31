@@ -172,6 +172,7 @@ var ROBOT = (function () {
   }
   /* =========== CRIATURA: cuerpo con cara + ojo/boca de otra clase + efecto de espalda =========== */
   var FR = { w: 1024, h: 907 };                                   // marco común de los 6 cuerpos
+  var COLA = {"plasma":[-101,32,214,614],"voltio":[-99,-1,194,608],"bio":[-113,-26,219,671],"cromo":[-113,28,232,576],"cuantico":[-100,447,490,480],"sombra":[-112,-108,295,725]};   // colas nuevas en el marco común (x, y, ancho, alto)
   var CARA = { ojo: [587, 133, 307, 307], boca: [624, 396, 363, 305] };
   var TUBOS = {   // boca de los 3 tubos de cada cuerpo (x, y en el marco, ángulo: 0 = arriba)
     plasma:   [[100, 262, -55], [180, 135, -35], [290, 82, -12]],
@@ -229,7 +230,7 @@ var ROBOT = (function () {
     return '<svg class="rb ' + (opts.cls || '') + '" data-fx="' + ce + '" viewBox="0 0 240 220" overflow="visible" xmlns="http://www.w3.org/2000/svg">' + defs +
       '<ellipse class="rb-sombra" cx="122" cy="203" rx="70" ry="7" fill="' + K.col + '" opacity=".25"/>' +
       '<g class="rb-cuerpo">' +
-      '<g class="rb-cola">' + img(nom('cola', pp.cola), co[0], co[1], 64, 52, 1, .5) + '</g>' +
+      '<g class="rb-cola">' + pieza('cola_' + (COLA[pp.cola.c] ? pp.cola.c : cls), COLA[pp.cola.c] || COLA[cls]) + '</g>' +
       '<g class="rb-fx">' + efectos + '</g>' +
       '<g class="rb-ant">' + img(nom('antenas', pp.antenas), an[0], an[1], 48, 66, .5, 1) + '</g>' +
       '<g class="rb-cuerno">' + img(nom('cuerno', pp.cuerno), cu[0], cu[1], 40, 52, .5, 1) + '</g>' +
