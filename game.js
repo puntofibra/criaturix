@@ -299,9 +299,13 @@ function comprarCreditos() {
     conSes('recargar', { cantidad: c }).then(d => {
       ocupado(b, false); if (!d.ok) return toast(d.error, 'err');
       Son.moneda && Son.moneda();
+      const waTxt = `Hola, soy ${SES.perfil.usuario} y he pagado ${euros(c)} € por ${fmt(c)} créditos en CRIATURIX, pero todavía no me han llegado. Pedido: ${d.pedido.id}`;
       const m2 = modal(`<div class="pago crCompra"><h2 style="padding:0">RECARGA DE ${fmt(c)} CRÉDITOS</h2><div class="imp">${euros(c)} €</div>
         <a class="btn oro grande bloque" id="crPagar" href="${d.pedido.url}" target="_blank" rel="noopener">PAGAR CON myPOS · ${euros(c)} €</a>
-        <p class="nota">Completa el pago en la ventana de myPOS. En cuanto Futurmovil lo confirme, se sumarán <b style="color:var(--c)">${fmt(c)} créditos</b> a tu cuenta. Puedes ver el estado en tus compras.</p>
+        <div class="crPasos"><div><b>1</b><span>Paga <b>${euros(c)} €</b> en la ventana de myPOS que se ha abierto.</span></div>
+          <div><b>2</b><span>Futurmovil comprobará el pago a mano. En cuanto lo confirme, se sumarán <b style="color:var(--c)">${fmt(c)} créditos</b> a tu cuenta automáticamente.</span></div>
+          <div><b>3</b><span>Puedes ver el estado en <b>Mercado › Mis compras</b>. Tu número de pedido es <b>${esc(d.pedido.id)}</b>.</span></div></div>
+        <div class="crReclama"><p>¿Has pagado y no te llegan los créditos?</p><a class="btn wa bloque" target="_blank" rel="noopener" href="https://wa.me/${CFG.WHATSAPP}?text=${encodeURIComponent(waTxt)}"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2.1 1-2.4c.3-.3.6-.3.8-.3h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.3.5-.4.5c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l2 1c.3.1.5.2.5.3.1.2.1.7-.1 1.3z"/></svg>RECLAMAR POR WHATSAPP</a></div>
         <div class="acciones" style="justify-content:center"><button class="btn sec" id="crOk">ENTENDIDO</button></div></div>`);
       $('#crOk', m2).onclick = () => cerrarModal();
       try { window.open(d.pedido.url, '_blank', 'noopener'); } catch (e) {}
@@ -544,7 +548,22 @@ const ICO = {
   tienda: '<svg viewBox="0 0 24 24"><path d="M3 9l2-6h14l2 6zM4 10h16v11H4zm5 3v6h6v-6z"/></svg>',
   robot: '<svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="5"/><path d="M8 3v4M16 3v4" stroke="currentColor" stroke-width="2"/></svg>'
 };
-function losa(v, titulo, sub, col, ico, extra) { return `<button class="losa" data-ir="${v}" style="--lc:${col}"><b>${titulo}</b><small>${sub}</small>${extra || ''}<span class="lIco">${ICO[ico]}</span></button>`; }
+const UIV = '?v=1', imU = (f, c) => `<img class="la ${c}" src="img/ui/${f}.webp${UIV}" alt="" draggable="false">`;
+const LOSA_FONDO = {};   // fondos ilustrados (img/ui/fondo_<vista>.webp): poner aventura: 1, arena: 1... cuando estén
+const COPA_SVG = '<svg class="lCopa" viewBox="0 0 64 64"><defs><linearGradient id="gCopa" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6b0"/><stop offset=".45" stop-color="#ffd23f"/><stop offset="1" stop-color="#b86a00"/></linearGradient></defs><path fill="none" stroke="url(#gCopa)" stroke-width="4" d="M18 10H9v4c0 6 4 10 10 10M46 10h9v4c0 6-4 10-10 10"/><path fill="url(#gCopa)" d="M17 5h30v11c0 9-6.5 16-15 16S17 25 17 16z"/><path fill="url(#gCopa)" d="M28 31h8v9h-8zM22 40h20l3 8H19z"/><rect x="15" y="48" width="34" height="9" rx="2.5" fill="url(#gCopa)"/><path d="M23 9q1 13 8 17" stroke="#fff" stroke-width="2.4" fill="none" opacity=".55" stroke-linecap="round"/><path d="M32 10.5l2.3 4.7 5.1.7-3.7 3.6.9 5.1-4.6-2.4-4.6 2.4.9-5.1-3.7-3.6 5.1-.7z" fill="#fffbe0"/></svg>';
+const LOSA_ARTE = {
+  aventura: `<i class="lSuelo"></i>${imU('cx_bio', 'solo')}<svg class="lPin" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.6" fill="#05060f"/></svg>`,
+  arena: `<i class="lSuelo"></i>${imU('cx_plasma', 'izq')}${imU('cx_sombra', 'der')}<i class="lVs">VS</i>`,
+  criaturas: `<i class="lSuelo"></i>${imU('cx_cromo', 't3')}${imU('cx_voltio', 't2')}${imU('cx_cuantico', 't1')}`,
+  criadero: `<i class="lSuelo"></i>${imU('huevo', 'huevo')}<i class="lCor c1">♥</i><i class="lCor c2">♥</i><i class="lCor c3">♥</i>`,
+  mercado: `<i class="lSuelo"></i>${imU('cx_cromo', 'merc')}<span class="lPrecio">€</span><i class="lMon m1"></i><i class="lMon m2"></i><i class="lMon m3"></i>`,
+  ranking: `<i class="lSuelo"></i>${COPA_SVG}<i class="lEst s1">★</i><i class="lEst s2">★</i><i class="lEst s3">★</i>`
+};
+function losa(v, titulo, sub, col, ico, extra, badge) {
+  return `<button class="losa" data-ir="${v}" style="--lc:${col}"><span class="lFondo"${LOSA_FONDO[v] ? ` style="background-image:url(img/ui/fondo_${v}.webp${UIV})"` : ''}></span><span class="lRejilla"></span>
+    <span class="lArte">${LOSA_ARTE[v] || ''}</span><i class="lChispa"></i><i class="lChispa"></i><i class="lChispa"></i><i class="lChispa"></i><span class="lBrillo"></span><i class="lEsq e1"></i><i class="lEsq e2"></i>
+    ${badge ? `<em class="lBadge">${badge}</em>` : ''}<span class="lTxt"><b>${titulo}</b><small>${sub}</small>${extra || ''}</span></button>`;
+}
 VISTAS.inicio = div => {
   const p = SES.perfil, eq = p.equipo.map(mia).filter(Boolean);
   const huevosListos = DATA.criaturas.filter(c => c.tipo === 'huevo' && c.eclosion <= Date.now() && !c.estado).length;
@@ -560,7 +579,7 @@ VISTAS.inicio = div => {
       ${losa('aventura', 'AVENTURA', `Etapa ${Math.min(30, p.etapa + 1)} de 30`, '#19ff6a', 'mapa', `<div class="prog"><i style="width:${p.etapa / 30 * 100}%"></i></div>`)}
       ${losa('arena', 'ARENA', `${p.elo} puntos · ${p.victorias}V ${p.derrotas}D`, '#ff2bd6', 'espadas')}
       ${losa('criaturas', 'MIS CRIATURAS', `${DATA.criaturas.filter(c => c.tipo === 'criatura').length} criaturas · ${DATA.criaturas.filter(c => c.tipo === 'huevo').length} huevos`, '#00e5ff', 'robot')}
-      ${losa('criadero', 'CRIADERO', huevosListos ? `¡${huevosListos} huevo${huevosListos > 1 ? 's' : ''} listo${huevosListos > 1 ? 's' : ''}!` : 'Cría nuevas criaturas', '#ffd23f', 'huevo')}
+      ${losa('criadero', 'CRIADERO', huevosListos ? `¡${huevosListos} huevo${huevosListos > 1 ? 's' : ''} listo${huevosListos > 1 ? 's' : ''}!` : 'Cría nuevas criaturas', '#ffd23f', 'huevo', '', huevosListos ? '¡LISTO!' : '')}
       ${losa('mercado', 'MERCADO', 'Compra y vende criaturas y huevos', '#b14bff', 'tienda')}
       ${losa('ranking', 'RANKING', 'Los mejores de CRIATURIX', '#ff4d2e', 'copa')}
     </div></div>`;
@@ -894,7 +913,7 @@ VISTAS.ranking = div => {
   api('ranking').then(d => {
     if (!d.ok) return toast(d.error, 'err');
     const pinta = k => { $$('#rp button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
-      $('#rt').innerHTML = (d[k] || []).map((r, i) => `<tr class="${r.usuario === SES.perfil.usuario ? 'yo' : ''}"><td>${i + 1}</td><td>${esc(r.usuario)}</td><td style="text-align:right;font-family:Orbitron">${k === 'arena' ? r.elo + ' <small style="color:var(--tx2)">' + r.v + 'V</small>' : 'Etapa ' + r.etapa}</td></tr>`).join('') || '<tr><td colspan="3" class="nota">Todavía no hay nadie. ¡Sé el primero!</td></tr>'; };
+      $('#rt').innerHTML = (d[k] || []).map((r, i) => `<tr class="${r.usuario === SES.perfil.usuario ? 'yo' : ''}"><td>${i + 1}</td><td>${esc(r.usuario)}</td><td style="text-align:right;font-family:Orbitron">${k === 'arena' ? r.elo + ` <small class="rVD"><b style="color:var(--v)">${r.v}V</b> <b style="color:var(--r)">${r.d}D</b></small>` : 'Etapa ' + r.etapa}</td></tr>`).join('') || '<tr><td colspan="3" class="nota">Todavía no hay nadie. ¡Sé el primero!</td></tr>'; };
     $$('#rp button').forEach(b => b.onclick = () => pinta(b.dataset.k)); pinta('arena');
   });
 };
@@ -926,7 +945,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 33;   // subir este número (y version.json) en cada actualización
+const VERSION = 34;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();
