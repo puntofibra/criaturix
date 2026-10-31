@@ -564,3 +564,25 @@ body.hitstop .rb *{animation-play-state:paused!important}
 /* botón de velocidad */
 .ibtn.vel{font:900 13px Orbitron;width:auto;padding:0 10px;color:var(--o)}
 @media (prefers-reduced-motion:reduce){.lu .pad,.lu .pad::after,.campo2.finGana::before{animation:none}}
+
+/* ---------- efectos de espalda (salen por los tubos) ---------- */
+.rb .fx-llama{transform-box:fill-box;transform-origin:50% 100%;animation:fxLlama .22s ease-in-out infinite alternate}
+.rb .fx-llama.f2{animation-duration:.17s}
+.rb .fx-llama.fina{animation-duration:.3s}
+@keyframes fxLlama{from{transform:scale(.85,.78) skewX(-4deg);opacity:.85}to{transform:scale(1.08,1.15) skewX(5deg);opacity:1}}
+.rb .fx-rayo{animation:fxRayo .7s steps(1) infinite}
+.rb .fx-rayo.r2{animation-duration:.55s;animation-direction:reverse}
+@keyframes fxRayo{0%,30%{opacity:1}31%,55%{opacity:0}56%,70%{opacity:1;transform:scaleX(-1)}71%,100%{opacity:0}}
+.rb .fx-chispa{animation:latido .3s steps(2) infinite}
+.rb .fx-raiz{transform-box:fill-box;transform-origin:50% 100%;animation:fxRaiz 1.6s ease-in-out infinite}
+@keyframes fxRaiz{0%,100%{transform:rotate(-12deg) scaleY(.92)}50%{transform:rotate(12deg) scaleY(1.06)}}
+.rb .fx-brillo{transform-box:fill-box;transform-origin:50% 50%;animation:fxBrillo 1.3s ease-in-out infinite}
+.rb .fx-brillo.b2{animation-duration:.9s}
+@keyframes fxBrillo{0%,100%{opacity:0;transform:scale(.3)}50%{opacity:1;transform:scale(1.2)}}
+.rb .fx-humo{transform-box:fill-box;transform-origin:50% 50%;animation:fxHumo 1.8s ease-out infinite}
+.rb .fx-humo.h2{animation-duration:2.4s}
+@keyframes fxHumo{0%{transform:translate(0,0) scale(.4);opacity:.85}100%{transform:translate(-4px,-34px) scale(2.2);opacity:0}}
+.rb .fx-haz{transform-box:fill-box;transform-origin:50% 100%;animation:fxHaz 1.4s ease-in-out infinite}
+@keyframes fxHaz{0%,100%{opacity:.35;transform:scaleY(.8)}50%{opacity:.95;transform:scaleY(1.1)}}
+.rb .fx-estrella{transform-box:fill-box;transform-origin:50% 50%;animation:fxEstrella 1.4s ease-in-out infinite}
+@keyframes fxEstrella{0%,100%{opacity:.2;transform:scale(.3) rotate(0)}50%{opacity:1;transform:scale(1) rotate(45deg)}}
