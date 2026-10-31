@@ -1,11 +1,12 @@
-const CACHE = 'criaturix-v18';
-const ASSETS = ['./', 'index.html', 'style.css?v=7', 'js/fx.js?v=2', 'js/arena.js?v=1', 'game.js?v=2', 'combate.js?v=3', 'admin.js?v=1', 'js/datos.js?v=1', 'js/robot.js?v=16', 'js/fuego.js?v=2', 'js/qrcode.min.js?v=1',
+const CACHE = 'criaturix-v19';
+const ASSETS = ['./', 'index.html', 'style.css?v=8', 'js/fx.js?v=2', 'js/arena.js?v=1', 'game.js?v=3', 'combate.js?v=3', 'admin.js?v=1', 'js/datos.js?v=1', 'js/robot.js?v=17', 'js/fuego.js?v=2', 'js/qrcode.min.js?v=1',
   'manifest.json?v=1', 'img/logo.webp', 'img/icon-192.png?v=1', 'img/icon-512.png?v=1', 'img/icon-180.png?v=1', 'favicon.ico?v=1'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);
   if (e.request.method !== 'GET' || u.origin !== location.origin) return;
+  if (u.pathname.endsWith('version.json')) return;   // la versión siempre se pide a internet
   const pagina = e.request.mode === 'navigate' || u.pathname.endsWith('/') || u.pathname.endsWith('.html');
   if (pagina) {
     e.respondWith(fetch(e.request).then(r => { if (r.ok) { const cp = r.clone(); caches.open(CACHE).then(c => c.put(e.request, cp)); } return r; })
