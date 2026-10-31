@@ -432,6 +432,25 @@ function instalar() {
   modal(`<h2>Instalar CRIATURIX</h2>${ios ? `<ol class="pasos"><li>Abre esta página en <b>Safari</b>.</li><li>Pulsa el botón <b>Compartir</b> (el cuadrado con la flecha hacia arriba).</li><li>Elige <b>«Añadir a pantalla de inicio»</b> y pulsa <b>Añadir</b>.</li></ol>`
     : `<ol class="pasos"><li>Abre el menú del navegador (⋮ arriba a la derecha).</li><li>Pulsa <b>«Instalar aplicación»</b> o <b>«Añadir a pantalla de inicio»</b>.</li></ol>`}<p class="nota">Así lo tendrás como una app más, a pantalla completa.</p>`);
 }
+/* cartel de instalación al abrir el juego si no está instalado */
+function instalado() { return matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true; }
+function cartelInstalar() {
+  if (instalado() || document.querySelector('.cInst')) return;
+  try { if (sessionStorage.getItem('cxInstVisto')) return; sessionStorage.setItem('cxInstVisto', '1'); } catch (e) {}
+  const d = document.createElement('div'); d.className = 'cInst';
+  d.innerHTML = `<div class="ciFondo"></div><div class="ciCaja">
+    <div class="ciArte"><img src="img/compartir.jpg?v=1" alt=""><i class="ciBrillo"></i>${Array.from({ length: 14 }, (_, i) => `<b class="ciChispa" style="--x:${Math.round(Math.random() * 100)}%;--d:${(Math.random() * 3).toFixed(2)}s;--t:${(2.4 + Math.random() * 2).toFixed(2)}s"></b>`).join('')}</div>
+    <div class="ciTxt"><small>EXPERIENCIA COMPLETA</small><h3>Instala CRIATURIX</h3>
+    <p>Llévate tus criaturas contigo: juega a <b>pantalla completa</b>, ábrelo con <b>un solo toque</b> desde tu pantalla de inicio y recibe las <b>actualizaciones automáticas</b>.</p>
+    <div class="ciBtns"><button class="btn grande" id="ciSi">⤓ INSTALAR EN ESTE EQUIPO</button><button class="btn sec" id="ciNo">CONTINUAR SIN INSTALAR</button></div></div></div>`;
+  document.body.appendChild(d);
+  try { Son.init(); } catch (e) {}
+  const cerrar = () => { d.classList.add('fuera'); setTimeout(() => d.remove(), 400); };
+  $('#ciNo', d).onclick = () => { try { Son.click(); } catch (e) {} cerrar(); };
+  $('.ciFondo', d).onclick = $('#ciNo', d).onclick;
+  $('#ciSi', d).onclick = () => { cerrar(); instalar(); };
+}
+setTimeout(cartelInstalar, 1600);
 function compartir() {
   Son.init(); Son.click();
   const txt = '¡Juega conmigo a CRIATURIX! Cría y combate con criaturas robot 🤖⚡', url = CFG.URL;
@@ -851,7 +870,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 23;   // subir este número (y version.json) en cada actualización
+const VERSION = 25;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();

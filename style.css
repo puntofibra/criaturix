@@ -645,3 +645,33 @@ body.hitstop .rb *{animation-play-state:paused!important}
 @media (min-width:700px){.cbBajo .carta .kArte{height:66px}}
 .carta{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}
 .carta .kVal{min-height:18px}
+
+/* ---------- cartel de instalar ---------- */
+.cInst{position:fixed;inset:0;z-index:9990;display:grid;place-items:center;padding:16px}
+.cInst .ciFondo{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,rgba(255,77,46,.18),rgba(3,4,13,.88) 60%);backdrop-filter:blur(6px);animation:fade .4s}
+.cInst .ciCaja{position:relative;width:min(420px,100%);border-radius:22px;overflow:hidden;background:linear-gradient(180deg,#141a33,#070a16);
+  box-shadow:0 30px 80px rgba(0,0,0,.7),0 0 0 1.5px rgba(255,140,60,.6),0 0 40px rgba(255,77,46,.35);animation:ciEntra .65s cubic-bezier(.2,1.4,.4,1)}
+.cInst .ciCaja::before{content:'';position:absolute;inset:-2px;border-radius:24px;padding:2px;background:conic-gradient(from var(--a,0deg),#ff4d2e,#ffd23f,#00e5ff,#ff2bd6,#ff4d2e);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:ciGira 4s linear infinite;pointer-events:none;z-index:3}
+@property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
+@keyframes ciGira{to{--a:360deg}}
+@keyframes ciEntra{from{opacity:0;transform:translateY(40px) scale(.85)}to{opacity:1;transform:none}}
+.cInst.fuera .ciCaja{animation:ciSale .35s forwards}.cInst.fuera .ciFondo{animation:fade .35s reverse forwards}
+@keyframes ciSale{to{opacity:0;transform:translateY(20px) scale(.92)}}
+.cInst .ciArte{position:relative;aspect-ratio:16/10;overflow:hidden}
+.cInst .ciArte img{width:100%;height:100%;object-fit:cover;object-position:50% 38%;animation:ciZoom 9s ease-in-out infinite alternate}
+@keyframes ciZoom{from{transform:scale(1.04)}to{transform:scale(1.14) translateY(-2%)}}
+.cInst .ciArte::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 45%,#141a33 98%)}
+.cInst .ciBrillo{position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.35) 50%,transparent 65%);transform:translateX(-120%);animation:ciBrillo 3.2s ease-in-out infinite 1s;z-index:1}
+@keyframes ciBrillo{0%{transform:translateX(-120%)}45%,100%{transform:translateX(120%)}}
+.cInst .ciChispa{position:absolute;bottom:-6px;left:var(--x);width:5px;height:5px;border-radius:50%;background:#ffd23f;box-shadow:0 0 8px #ff8a3a,0 0 14px #ff4d2e;z-index:2;animation:ciSube var(--t) linear infinite var(--d);opacity:0}
+@keyframes ciSube{0%{opacity:0;transform:translate(0,0) scale(.6)}15%{opacity:1}100%{opacity:0;transform:translate(14px,-220px) scale(1.2)}}
+.cInst .ciTxt{position:relative;padding:4px 22px 22px;text-align:center}
+.cInst small{display:block;font-family:Orbitron;font-size:10.5px;letter-spacing:.3em;color:#ffb02e;text-shadow:0 0 10px rgba(255,140,40,.7)}
+.cInst h3{font-family:Orbitron;font-weight:900;font-size:24px;margin:6px 0 10px;background:linear-gradient(90deg,#ffd23f,#ff4d2e,#ff2bd6,#ffd23f);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:degradado 5s linear infinite}
+.cInst p{font-size:14px;line-height:1.45;color:#c6d6e0;margin:0 0 18px}.cInst p b{color:#fff}
+.cInst .ciBtns{display:flex;flex-direction:column;gap:10px}
+.cInst #ciSi{background:linear-gradient(90deg,#ff4d2e,#ffb02e);color:#1a0600;box-shadow:0 0 22px rgba(255,120,40,.6);animation:ciLatido 1.6s ease-in-out infinite}
+@keyframes ciLatido{50%{box-shadow:0 0 34px rgba(255,140,40,.95);transform:scale(1.02)}}
+/* móvil vertical: sin el logo de Futurmovil en la barra para no tapar los saldos */
+@media (max-width:600px){.marca img{display:none}.marca b{display:none}.marca{flex:0 0 auto;width:34px;height:34px;border-radius:10px;background:url(img/icon-192.png?v=2) center/cover;box-shadow:0 0 10px rgba(255,77,46,.5)}}
