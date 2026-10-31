@@ -3,20 +3,60 @@
    ========================================================= */
 'use strict';
 const Combate = (() => {
-  let S = null, sel = { 0: [], 1: [], 2: [] }, ocup = false, vel = load('vel', 1);
+  let S = null, sel = { 0: [], 1: [], 2: [] }, ocup = false, animando = false, vel = load('vel', 1), relojT = 0, sondeoT = 0, buscando = null;
+  const esPvp = () => !!(S && S.meta && S.meta.real);   // partida contra otro jugador real
   const EST = { corr: ['CORR', '#d38bff'], aturde: ['ATURD', '#ffe03a'], miedo: ['MIEDO', '#ff4fd8'], atkMas: ['ATQ▲', '#ff6b5a'], atkMenos: ['ATQ▼', '#9fb6c4'], velMas: ['VEL▲', '#19ff6a'], velMenos: ['VEL▼', '#9fb6c4'], expuesto: ['EXPU', '#ffb02e'] };
   const NOM_EST = { corrosion: 'CORROSIÓN', aturdido: 'ATURDIDO', miedo: 'MIEDO', debilitado: 'DEBILITADO', lento: 'LENTO', expuesto: 'EXPUESTO', potenciado: 'POTENCIADO', veloz: 'VELOZ' };
 
   function empezar(o) {
+    if (o.modo === 'pvp') return buscar();
     return conSes('combate', o).then(d => {
       if (!d.ok) { toast(d.error, 'err'); return; }
-      cerrarModal(); S = { meta: d.meta, vista: d.vista }; sel = { 0: [], 1: [], 2: [] };
-      ir('combate');
-      setTimeout(() => { banner('¡A LUCHAR!', d.meta.modo === 'pve' ? 'ETAPA ' + d.meta.etapa : 'ARENA', '#ff2bd6'); Son.turno(); }, 2100);
+      entrar(d);
     });
   }
+  function nuevoS(d) {
+    S = { meta: d.meta, vista: d.vista, enviado: d.enviado ? d.vista.ronda : 0, rivalListo: !!d.rivalListo, anim: 0 }; sel = { 0: [], 1: [], 2: [] };
+    ponReloj(d.quedan);
+  }
+  function entrar(d) {
+    cerrarModal(); nuevoS(d);
+    ir('combate');
+    setTimeout(() => { banner('¡A LUCHAR!', d.meta.modo === 'pve' ? 'ETAPA ' + d.meta.etapa : 'ARENA', '#ff2bd6'); Son.turno(); }, 2100);
+  }
+  /* ---------- arena: buscar rival (espera a jugadores reales y, si no hay, bot) ---------- */
+  function buscar() {
+    if (buscando) return buscando;
+    let cancel = false, primera = true;
+    const t0 = Date.now();
+    const m = modal(`<div class="buscaR"><div class="radar"></div><h2 style="padding:0">BUSCANDO RIVAL</h2><p class="nota" id="bsTxt">Buscando jugadores conectados…</p>
+      <div class="acciones" style="justify-content:center"><button class="btn sec" id="bsNo">CANCELAR</button></div></div>`, { sinCerrar: true });
+    Son.estado();
+    buscando = new Promise(fin => {
+      const acabar = () => { buscando = null; fin(); };
+      $('#bsNo', m).onclick = () => {
+        cancel = true; Son.click(); cerrarModal();
+        if (VISTA === 'combate') { S = null; ir('arena'); }
+        conSes('nobuscar').then(d => { if (d.ok && d.vista) entrar(d); });
+        acabar();
+      };
+      const paso = () => {
+        if (cancel) return;
+        conSes('buscar', { nueva: primera ? 1 : 0 }).then(d => {
+          primera = false;
+          if (cancel) return;
+          if (!d.ok) { cerrarModal(); toast(d.error, 'err'); return acabar(); }
+          if (d.vista) { Son.moneda(); vib([30, 40, 30]); acabar(); return entrar(d); }
+          const el = $('#bsTxt'); if (el) el.textContent = 'Buscando jugadores conectados… ' + Math.floor((Date.now() - t0) / 1000) + ' s';
+          setTimeout(paso, 900);
+        });
+      };
+      paso();
+    });
+    return buscando;
+  }
   function reanudar(c) {
-    S = { meta: c.meta, vista: c.vista }; sel = { 0: [], 1: [], 2: [] };
+    nuevoS(c);
     const m = modal(`<h2>Tienes un combate a medias</h2><p class="nota">Contra <b>${esc(c.meta.rival)}</b>, ronda ${c.vista.ronda}.</p><div class="acciones" style="justify-content:flex-end"><button class="btn sec" id="cRen">Rendirme</button><button class="btn" id="cSeg">CONTINUAR</button></div>`);
     $('#cSeg', m).onclick = () => { cerrarModal(); ir('combate'); };
     $('#cRen', m).onclick = () => { cerrarModal(); rendirse(); };
@@ -27,7 +67,7 @@ const Combate = (() => {
     if (!S) return ir('inicio');
     div.className = 'vista combate';
     const V = S.vista;
-    div.innerHTML = `<div class="cbTop"><span class="ronda">RONDA <b id="cRonda">${V.ronda}</b></span><div class="vs">${esc(V.yo.nombre)} <em>VS</em> ${esc(V.el.nombre)}</div>
+    div.innerHTML = `<div class="cbTop"><span class="ronda">RONDA <b id="cRonda">${V.ronda}</b></span><div class="vs">${esc(V.yo.nombre)} <em>VS</em> ${esc(V.el.nombre)}</div>${esPvp() ? '<span class="reloj" id="cReloj"></span>' : ''}
         <button class="ibtn" id="cSon"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="ondas" d="M16 8a5 5 0 0 1 0 8" fill="none" stroke-width="2"/></svg></button><button class="ibtn vel" id="cVel" title="Velocidad de la animación">x${vel}</button><button class="ibtn bPower" aria-label="Salir del juego" title="Salir del juego">${ICO_POWER}</button><button class="btn sec peq" id="cSalir">SALIR</button></div>
       <div class="campo2" id="campo"><div class="lado el" id="ladoEl"></div><div class="lado yo" id="ladoYo"></div></div>
       <div class="cbBajo"><div class="cbCtrl"><div class="energia" id="cEn"></div><span class="mazoN" id="cMazo"></span>
@@ -43,6 +83,40 @@ const Combate = (() => {
     FX.montar($('#campo'));
     if (window.ARENA) ARENA.montar(div);
     if (!S.visto) { S.visto = 1; intro(div); }
+    if (esPvp()) { if (S.enviado === V.ronda) ponEspera(); iniciaPvp(); }
+  }
+  /* ---------- partida contra otro jugador: reloj del turno y consulta al servidor ---------- */
+  function ponReloj(q) { if (S && q != null) S.limite = Date.now() + q; }
+  function ponEspera() { const c = $('#campo'); if (c && !$('#cEsp')) c.insertAdjacentHTML('beforeend', `<div class="esperando" id="cEsp"><span>${esPvp() ? 'ESPERANDO A ' + esc(S.vista.el.nombre.toUpperCase()) + '…' : 'RESOLVIENDO…'}</span></div>`); }
+  function quitaEspera() { const e = $('#cEsp'); if (e) e.remove(); }
+  function pintaReloj() {
+    const el = $('#cReloj'); if (!el || !S) return;
+    if (animando || S.vista.fin || !S.limite) { el.innerHTML = ''; el.className = 'reloj'; return; }
+    const q = Math.max(0, Math.ceil((S.limite - Date.now()) / 1000)), yaEnv = S.enviado === S.vista.ronda;
+    el.innerHTML = `⏱<b>${q}</b>${S.rivalListo && !yaEnv ? '<small>RIVAL LISTO</small>' : ''}`;
+    el.className = 'reloj' + (q <= 10 && !yaEnv ? ' poco' : '') + (S.rivalListo && !yaEnv ? ' listo' : '');
+  }
+  function iniciaPvp() {
+    clearInterval(relojT); clearTimeout(sondeoT);
+    relojT = setInterval(() => {
+      if (VISTA !== 'combate' || !esPvp()) return clearInterval(relojT);
+      pintaReloj();
+      // se acaba el tiempo: se envían las cartas que haya elegidas
+      if (!animando && !ocup && !S.vista.fin && S.enviado !== S.vista.ronda && S.limite && S.limite - Date.now() < 1200) luchar();
+    }, 500);
+    const sondeo = () => {
+      if (VISTA !== 'combate' || !esPvp()) return;
+      const r = S.vista.ronda;
+      conSes('esperar', { ronda: r }).then(d => {
+        if (VISTA !== 'combate' || !esPvp()) return;
+        if (d.ok && !d.sinCombate && !animando && S.vista.ronda === r) {
+          ponReloj(d.quedan); S.rivalListo = !!d.rivalListo; pintaReloj();
+          if (d.resuelta) procesar(d, r);
+        }
+        sondeoT = setTimeout(sondeo, S && S.enviado === S.vista.ronda ? 1200 : 2000);
+      });
+    };
+    sondeoT = setTimeout(sondeo, 1500);
   }
   /* ---------- presentación VS ---------- */
   function intro(div) {
@@ -97,7 +171,7 @@ const Combate = (() => {
     });
   }
   function tocaCarta(u) {
-    if (ocup) return;
+    if (ocup || (esPvp() && S.enviado === S.vista.ronda)) return;
     const V = S.vista, k = V.yo.mano.find(x => x.u === u); if (!k) return;
     const c = V.yo.cr[k.p]; if (!c.vivo) return;
     const i = sel[k.p].indexOf(u);
@@ -110,22 +184,33 @@ const Combate = (() => {
     pintaMano(); pintaPilas();
   }
   function luchar() {
-    if (ocup) return; ocup = true;
-    const btn = $('#cLuchar'); ocupado(btn, true);
-    $('#campo').insertAdjacentHTML('beforeend', '<div class="esperando" id="cEsp"><span>RESOLVIENDO…</span></div>');
-    conSes('turno', { ronda: S.vista.ronda, jug: sel }).then(async d => {
-      const e = $('#cEsp'); if (e) e.remove();
-      if (!d.ok) { ocup = false; ocupado(btn, false); return toast(d.error, 'err'); }
-      sel = { 0: [], 1: [], 2: [] }; pintaPilas();
-      $('#cMano').innerHTML = '';
-      await animar(d.ev || []);
-      S.vista = d.vista; S.meta = d.meta || S.meta;
-      if (VISTA !== 'combate') { ocup = false; return; }
-      pintaLados(); pintaMano(); $('#cRonda').textContent = S.vista.ronda;
-      ocup = false; ocupado(btn, false);
-      if (d.premio) fin(d.premio);
-      else { cartelRonda(S.vista.ronda); }
+    if (ocup || animando || (esPvp() && S.enviado === S.vista.ronda)) return; ocup = true;
+    const btn = $('#cLuchar'), r = S.vista.ronda; ocupado(btn, true);
+    ponEspera();
+    conSes('turno', { ronda: r, jug: sel }).then(d => {
+      if (!S || S.anim === r) return;   // la ronda ya se está animando (llegó antes por la consulta)
+      if (!d.ok) { quitaEspera(); ocup = false; ocupado(btn, false); return toast(d.error, 'err'); }
+      if (esPvp() && !d.resuelta) {   // falta que elija el rival
+        S.enviado = r; ponReloj(d.quedan); S.rivalListo = false; ocup = false; pintaMano(); pintaReloj(); return;
+      }
+      procesar(d, r);
     });
+  }
+  async function procesar(d, r) {
+    if (!S || S.anim === r) return;
+    S.anim = r; ocup = true; animando = true; ponReloj(d.quedan);
+    quitaEspera(); sel = { 0: [], 1: [], 2: [] }; pintaPilas();
+    $('#cMano').innerHTML = ''; pintaReloj();
+    await animar(d.ev || []);
+    animando = false;
+    if (!S) { ocup = false; return; }
+    S.vista = d.vista; S.meta = d.meta || S.meta; S.enviado = 0; S.rivalListo = false;
+    if (VISTA !== 'combate') { ocup = false; return; }
+    pintaLados(); pintaMano(); $('#cRonda').textContent = S.vista.ronda;
+    ocup = false; ocupado($('#cLuchar'), false); pintaReloj();
+    if (d.premio) fin(d.premio);
+    else if (S.vista.fin) fin({ resultado: S.vista.fin, chips: 0, elo: 0 });
+    else { cartelRonda(S.vista.ronda); }
   }
   /* ---------- animación de eventos ---------- */
   function lu(l, p) { return $(`.lu[data-l="${l}"][data-p="${p}"]`); }
@@ -253,6 +338,12 @@ const Combate = (() => {
     S = null; ir('inicio');
   }
   function salir() {
+    if (esPvp()) {
+      const m = modal(`<h2>¿Salir del combate?</h2><p class="nota">Estás jugando contra <b>${esc(S.vista.el.nombre)}</b>. Si te vas, la partida sigue y perderás por abandono.</p><div class="acciones" style="justify-content:flex-end"><button class="btn rojo" id="sRen">RENDIRME</button><button class="btn" id="sSeg">SEGUIR</button></div>`);
+      $('#sSeg', m).onclick = () => cerrarModal();
+      $('#sRen', m).onclick = () => { cerrarModal(); rendirse(); };
+      return;
+    }
     const m = modal(`<h2>¿Salir del combate?</h2><p class="nota">Puedes dejarlo a medias y seguir después, o rendirte (cuenta como derrota).</p><div class="acciones" style="justify-content:flex-end"><button class="btn rojo" id="sRen">RENDIRME</button><button class="btn sec" id="sGuar">SALIR Y SEGUIR LUEGO</button><button class="btn" id="sSeg">SEGUIR</button></div>`);
     $('#sSeg', m).onclick = () => cerrarModal();
     $('#sGuar', m).onclick = () => { cerrarModal(); const v = volverA(); S = null; ir(v); };
