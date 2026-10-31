@@ -45,7 +45,7 @@ const ACCIONES = {
   recargar: p => recargar_(p), cancelar: p => cancelarPedido_(p), pedidos: p => misPedidos_(p), movimientos: p => movimientos_(p),
   ranking: p => ranking_(p),
   combate: p => combateInicio_(p), turno: p => combateTurno_(p), rendirse: p => combateRendirse_(p), encurso: p => combateEnCurso_(p),
-  admin_entrar: p => adminEntrar_(p), qr_nuevo: p => qrNuevo_(), qr_estado: p => qrEstado_(p), admin_totp: p => adminTotp_(p),
+  admin_entrar: p => adminEntrar_(p), qr_nuevo: p => qrNuevo_(), qr_estado: p => qrEstado_(p),   // sin Google Authenticator: solo llave NFC (o QR + llave)
   admin: p => admin_(p)
 };
 
