@@ -173,6 +173,22 @@ var ROBOT = (function () {
   /* =========== CRIATURA: cuerpo con cara + ojo/boca de otra clase + efecto de espalda =========== */
   var FR = { w: 1024, h: 907 };                                   // marco común de los 6 cuerpos
   var CUERNO = {"plasma":[826,-25,288,391],"voltio":[803,-69,315,360],"bio":[799,-56,284,388],"cromo":[804,-59,316,347],"cuantico":[791,-55,299,321],"sombra":[817,-107,289,378]};   // cuernos nuevos en el marco común (van por delante de la ceja)
+  var PARPADO = {   // color del párpado según la clase del ojo: [arriba, abajo, borde]
+    plasma: ['#2a1a16', '#4a2e24', '#ff8a4a'], voltio: ['#3a3b42', '#62646c', '#ffe03a'], bio: ['#4a2e16', '#7a4e2a', '#b6ff3a'],
+    cromo: ['#4a515b', '#7d8792', '#cfe6ff'], cuantico: ['#5c8fa6', '#9fd9e8', '#e8fdff'], sombra: ['#130a19', '#2b1736', '#ff4fd8']
+  };
+  var OJO = { cx: 736, cy: 305, r: 80 };   // iris en el marco común
+  function parpado(cl, id) {
+    var P = PARPADO[cl] || PARPADO.cromo, s = 160 / FR.w, X0 = 50, Y0 = 200 - FR.h * s;
+    var cx = X0 + OJO.cx * s, cy = Y0 + OJO.cy * s, r = OJO.r * s, d = (3.6 + Math.random() * 3.4).toFixed(2), dl = (-Math.random() * 6).toFixed(2);
+    var f = function (v) { return v.toFixed(1); }, st = ' style="--pd:' + d + 's;--pdl:' + dl + 's"', dob = Math.random() < .35 ? ' doble' : '';
+    return '<defs><clipPath id="pc' + id + '"><ellipse cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" rx="' + r.toFixed(1) + '" ry="' + (r * 1.02).toFixed(1) + '"/></clipPath>' +
+      '<linearGradient id="pg' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + P[0] + '"/><stop offset=".72" stop-color="' + P[1] + '"/><stop offset=".84" stop-color="' + P[2] + '" stop-opacity=".5"/><stop offset=".92" stop-color="' + P[0] + '"/><stop offset="1" stop-color="#000" stop-opacity=".85"/></linearGradient>' +
+      '<linearGradient id="pi' + id + '" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="' + P[0] + '"/><stop offset=".8" stop-color="' + P[1] + '"/><stop offset="1" stop-color="' + P[2] + '" stop-opacity=".4"/></linearGradient></defs>' +
+      '<g class="rb-parp' + dob + '" clip-path="url(#pc' + id + ')"' + st + '>' +
+      '<path class="sup" d="M' + f(cx - r * 1.1) + ' ' + f(cy - r * 1.25) + 'H' + f(cx + r * 1.1) + 'V' + f(cy + r * .35) + 'Q' + f(cx) + ' ' + f(cy + r * .72) + ' ' + f(cx - r * 1.1) + ' ' + f(cy + r * .35) + 'Z" fill="url(#pg' + id + ')"/>' +
+      '<path class="inf" d="M' + f(cx - r * 1.1) + ' ' + f(cy + r * 1.15) + 'H' + f(cx + r * 1.1) + 'V' + f(cy + r * .3) + 'Q' + f(cx) + ' ' + f(cy + r * .1) + ' ' + f(cx - r * 1.1) + ' ' + f(cy + r * .3) + 'Z" fill="url(#pi' + id + ')"/></g>';
+  }
   var COLA_FRENTE = { cuantico: 1 };   // colas con una parte que va por delante de la pata
   var COLA = {"plasma":[-101,32,214,614],"voltio":[-99,-1,194,608],"bio":[-113,-26,219,671],"cromo":[-113,28,232,576],"cuantico":[-100,447,490,480],"sombra":[-112,-108,295,725]};   // colas nuevas en el marco común (x, y, ancho, alto)
   var CARA = { ojo: [587, 133, 307, 307], boca: [624, 396, 363, 305] };
@@ -240,6 +256,7 @@ var ROBOT = (function () {
       (COLA_FRENTE[pp.cola.c] ? pieza('cola_' + pp.cola.c + '_frente', COLA[pp.cola.c]) : '') +
       (pp.ojos.c !== cls && CX.CLASES[pp.ojos.c] ? pieza('cara_ojo_' + pp.ojos.c, CARA.ojo) : '') +
       (pp.boca.c !== cls && CX.CLASES[pp.boca.c] ? pieza('cara_boca_' + pp.boca.c, CARA.boca) : '') +
+      parpado(CX.CLASES[pp.ojos.c] ? pp.ojos.c : cls, id) +
       '<g class="rb-cuerno">' + pieza('cuerno_' + (CUERNO[pp.cuerno.c] ? pp.cuerno.c : cls), CUERNO[pp.cuerno.c] || CUERNO[cls]) + '</g>' +
       '</g></svg>';
   }
