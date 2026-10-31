@@ -42,7 +42,7 @@ const ACCIONES = {
   yo: p => yo_(p), renombrar: p => renombrar_(p), equipo: p => equipo_(p),
   criar: p => criar_(p), eclosionar: p => eclosionar_(p),
   mercado: p => mercado_(p), vender: p => vender_(p), retirar: p => retirar_(p), comprar: p => comprar_(p),
-  cancelar: p => cancelarPedido_(p), pedidos: p => misPedidos_(p), movimientos: p => movimientos_(p),
+  recargar: p => recargar_(p), cancelar: p => cancelarPedido_(p), pedidos: p => misPedidos_(p), movimientos: p => movimientos_(p),
   ranking: p => ranking_(p),
   combate: p => combateInicio_(p), turno: p => combateTurno_(p), rendirse: p => combateRendirse_(p), encurso: p => combateEnCurso_(p),
   admin_entrar: p => adminEntrar_(p), qr_nuevo: p => qrNuevo_(), qr_estado: p => qrEstado_(p), admin_totp: p => adminTotp_(p),
@@ -298,7 +298,7 @@ function criar_(p) {
     if (pa.some(x => pb.indexOf(x) >= 0)) throw new Error('Los hermanos no pueden criar juntos');
     const coste = (cf.costeCria[num_(A[C.Crias])] || cf.costeCria[cf.costeCria.length - 1] || 0) + (cf.costeCria[num_(B[C.Crias])] || cf.costeCria[cf.costeCria.length - 1] || 0);
     if (num_(s.row[U.Chips]) < coste) throw new Error('Necesitas ' + coste + ' chips para criar (tienes ' + num_(s.row[U.Chips]) + ')');
-    if (num_(s.row[U.Creditos]) < cf.costeCriaCreditos) throw new Error('Necesitas ' + euros_(cf.costeCriaCreditos) + ' créditos para criar');
+    if (num_(s.row[U.Creditos]) < cf.costeCriaCreditos) throw new Error('Necesitas ' + cf.costeCriaCreditos + ' créditos para criar');
     s.row[U.Chips] = num_(s.row[U.Chips]) - coste; s.row[U.Creditos] = num_(s.row[U.Creditos]) - cf.costeCriaCreditos;
     guarda_(s.sh, s.i, s.row);
     A[C.Crias] = num_(A[C.Crias]) + 1; B[C.Crias] = num_(B[C.Crias]) + 1;
@@ -380,6 +380,24 @@ function comprar_(p) {
         htmlBody: mail_('<b>' + s.row[U.Usuario] + '</b> quiere comprar <b>' + nombreDe_(r) + '</b> (' + r[C.Tipo] + ') por <b>' + euros_(importe) + ' €</b>.<br>Vendedor: ' + (String(r[C.Dueno]) === TIENDA ? 'Tienda oficial' : r[C.DuenoNombre]) + '<br>Pedido: ' + id + '<p>Cuando recibas el pago en myPOS, confírmalo en el panel de administración.</p><p><a style="color:#00e5ff" href="' + WEB + '">' + WEB + '</a></p>') });
     } catch (e) {}
     return { ok: true, pedido: { id, importe, url: MYPOS + euros_(importe) } };
+  });
+}
+const PACKS_CREDITOS = [500, 1000, 2500, 5000, 10000];   // créditos (1 crédito = 1 céntimo)
+function recargar_(p) {
+  const s0 = sesion_(p.token);
+  freno_('recarga_' + s0.row[U.Id], 6, 600);
+  const cant = parseInt(p.cantidad, 10);
+  if (PACKS_CREDITOS.indexOf(cant) < 0) throw new Error('Cantidad no válida');
+  return conLock_(() => {
+    const s = sesion_(p.token), uid = String(s.row[U.Id]), shP = hoja_('Pedidos', CAB_P), ped = tabla_(shP, CAB_P.length);
+    if (ped.filter(x => String(x[P.IdComprador]) === uid && x[P.Estado] === 'pendiente').length >= 3) throw new Error('Tienes 3 compras pendientes de confirmar. Espera a que se confirmen.');
+    const id = nuevoId_('PD-');
+    shP.appendRow([id, new Date(), uid, s.row[U.Usuario], TIENDA, 'Recarga de créditos', '', 'creditos', cant, 'pendiente', '', '']);
+    try {
+      MailApp.sendEmail({ to: ADMIN_EMAIL, name: 'CRIATURIX', subject: '💎 Recarga de ' + cant + ' créditos (' + euros_(cant) + ' €) de ' + s.row[U.Usuario],
+        htmlBody: mail_('<b>' + s.row[U.Usuario] + '</b> quiere comprar <b>' + cant + ' créditos</b> por <b>' + euros_(cant) + ' €</b>.<br>Pedido: ' + id + '<p>Cuando recibas el pago en myPOS, confírmalo en el panel de administración y se le sumarán los créditos.</p><p><a style="color:#00e5ff" href="' + WEB + '">' + WEB + '</a></p>') });
+    } catch (e) {}
+    return { ok: true, pedido: { id, importe: cant, creditos: cant, url: MYPOS + euros_(cant) } };
   });
 }
 function cancelarPedido_(p) {
@@ -588,6 +606,15 @@ const ADMIN_OPS = {
   confirmar: p => conLock_(() => {
     const shP = hoja_('Pedidos', CAB_P), ped = tabla_(shP, CAB_P.length), i = buscar_(ped, P.Id, p.id);
     if (i < 0 || ped[i][P.Estado] !== 'pendiente') throw new Error('Ese pedido ya no está pendiente');
+    if (ped[i][P.Tipo] === 'creditos') {   // recarga de créditos: se suman al comprador
+      const x = ped[i], f = usuarios_(), ib = buscar_(f.rows, U.Id, x[P.IdComprador]);
+      if (ib < 0) throw new Error('El comprador ya no existe');
+      const cant = num_(x[P.Importe]);
+      f.rows[ib][U.Creditos] = num_(f.rows[ib][U.Creditos]) + cant; guarda_(f.sh, ib, f.rows[ib]);
+      mov_(String(x[P.IdComprador]), f.rows[ib][U.Usuario], 'Recarga de créditos (' + euros_(cant) + ' € en myPOS)', cant, 0, x[P.Id]);
+      x[P.Estado] = 'pagado'; x[P.Resuelto] = new Date(); x[P.Nota] = 'Recarga de ' + cant + ' créditos'; guarda_(shP, i, x);
+      return { ok: true };
+    }
     const x = ped[i], cr = criaturas_(), j = buscar_(cr.rows, C.Id, x[P.IdCriatura]);
     if (j < 0) throw new Error('La criatura del pedido ya no existe');
     const r = cr.rows[j], f = usuarios_(), ib = buscar_(f.rows, U.Id, x[P.IdComprador]);
@@ -607,7 +634,7 @@ const ADMIN_OPS = {
       }
     }
     mov_(String(x[P.IdComprador]), f.rows[ib][U.Usuario], 'Compra de ' + nombreDe_(r) + ' (' + euros_(num_(x[P.Importe])) + ' € en myPOS)', 0, 0, x[P.Id]);
-    x[P.Estado] = 'pagado'; x[P.Resuelto] = new Date(); x[P.Nota] = paraVendedor ? 'Vendedor recibe ' + euros_(paraVendedor) + ' créditos' : 'Venta de la tienda';
+    x[P.Estado] = 'pagado'; x[P.Resuelto] = new Date(); x[P.Nota] = paraVendedor ? 'Vendedor recibe ' + paraVendedor + ' créditos' : 'Venta de la tienda';
     guarda_(shP, i, x);
     CacheService.getScriptCache().removeAll(['mercado']);
     return { ok: true, paraVendedor };
@@ -664,7 +691,7 @@ const ADMIN_OPS = {
   },
   saldo: p => conLock_(() => {
     const f = usuarios_(), i = buscar_(f.rows, U.Id, p.id); if (i < 0) throw new Error('No existe');
-    const dc = centimos_(p.creditos), dch = parseInt(p.chips, 10) || 0;
+    const dc = parseInt(p.creditos, 10) || 0, dch = parseInt(p.chips, 10) || 0;
     f.rows[i][U.Creditos] = Math.max(0, num_(f.rows[i][U.Creditos]) + dc); f.rows[i][U.Chips] = Math.max(0, num_(f.rows[i][U.Chips]) + dch);
     guarda_(f.sh, i, f.rows[i]);
     mov_(String(p.id), f.rows[i][U.Usuario], String(p.nota || 'Ajuste del administrador').slice(0, 120), dc, dch, 'ADMIN');
