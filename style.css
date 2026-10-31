@@ -706,3 +706,23 @@ body.hitstop .rb *{animation-play-state:paused!important}
 .adios img{width:min(420px,80%);filter:drop-shadow(0 0 16px rgba(177,75,255,.4))}
 .adios b{font-family:Orbitron;font-weight:900;letter-spacing:.2em;font-size:20px;color:#19ff6a;text-shadow:0 0 12px #19ff6a}
 .adios small{color:var(--tx2)}
+
+/* ---------- comprar créditos ---------- */
+.crCompra .crCab{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.crCompra .crCab>.ic-cred{width:42px;height:42px;flex:0 0 auto;filter:drop-shadow(0 0 10px var(--c))}
+.crCompra .crCab h2{padding:0;margin:0}
+.crPacks{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px}
+.crPack{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:18px 8px 12px;border-radius:16px;cursor:pointer;
+  background:linear-gradient(170deg,rgba(0,229,255,.16),rgba(10,15,28,.95) 65%);border:1.5px solid rgba(0,229,255,.45);box-shadow:inset 0 0 18px rgba(0,229,255,.12);transition:transform .2s,box-shadow .2s;overflow:hidden}
+.crPack:hover{transform:translateY(-3px);box-shadow:0 0 22px rgba(0,229,255,.45),inset 0 0 18px rgba(0,229,255,.2)}
+.crPack::after{content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.16) 45%,transparent 60%);transform:translateX(-120%);animation:crBrillo 3.5s ease-in-out infinite}
+.crPack:nth-child(2)::after{animation-delay:.6s}.crPack:nth-child(3)::after{animation-delay:1.2s}.crPack:nth-child(4)::after{animation-delay:1.8s}.crPack:nth-child(5)::after{animation-delay:2.4s}
+@keyframes crBrillo{0%{transform:translateX(-120%)}40%,100%{transform:translateX(120%)}}
+.crPack>.ic-cred{width:30px;height:30px;filter:drop-shadow(0 0 8px var(--c))}
+.crPack b{font-family:Orbitron;font-weight:900;font-size:22px;color:#fff;text-shadow:0 0 10px rgba(0,229,255,.6)}
+.crPack small{font-size:11px;color:var(--tx2);letter-spacing:.08em}
+.crPack .crPrecio{margin-top:8px;padding:5px 14px;border-radius:20px;font-family:Orbitron;font-weight:900;font-size:13px;color:#03140a;background:linear-gradient(90deg,#19ff6a,#9bff3a);box-shadow:0 0 12px rgba(25,255,106,.5)}
+.crPack.pop{border-color:#ff2bd6;background:linear-gradient(170deg,rgba(255,43,214,.2),rgba(10,15,28,.95) 65%)}
+.crPack.top{border-color:#ffd23f;background:linear-gradient(170deg,rgba(255,210,63,.2),rgba(10,15,28,.95) 65%)}
+.crEtq{position:absolute;top:0;left:0;right:0;font-family:Orbitron;font-weight:900;font-size:8.5px;letter-spacing:.12em;padding:3px 0;background:#ff2bd6;color:#fff}
+.crEtq.oro{background:#ffd23f;color:#2a1a00}

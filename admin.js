@@ -100,7 +100,7 @@ const Admin = (() => {
   function resumen(c) {
     adm('resumen').then(d => {
       if (!d.ok) return;
-      c.innerHTML = `<div class="kpis">${[['Jugadores', d.jugadores], ['Criaturas', d.criaturas], ['Huevos', d.huevos], ['Pedidos pendientes', d.pendientes], ['Ventas', d.ventas], ['Facturado', euros(d.facturado) + ' €'], ['Créditos de jugadores', euros(d.creditosJugadores)], ['En tu tienda', d.enTienda]].map(([n, v]) => `<div class="kpi"><b>${v}</b><small>${n}</small></div>`).join('')}</div>
+      c.innerHTML = `<div class="kpis">${[['Jugadores', d.jugadores], ['Criaturas', d.criaturas], ['Huevos', d.huevos], ['Pedidos pendientes', d.pendientes], ['Ventas', d.ventas], ['Facturado', euros(d.facturado) + ' €'], ['Créditos de jugadores', fmt(d.creditosJugadores)], ['En tu tienda', d.enTienda]].map(([n, v]) => `<div class="kpi"><b>${v}</b><small>${n}</small></div>`).join('')}</div>
         <p class="nota">Los créditos de jugadores son lo que debes a los vendedores en moneda del juego (1 céntimo = 1 crédito).</p>`;
     });
   }
@@ -108,9 +108,9 @@ const Admin = (() => {
   function pedidos(c) {
     adm('pedidos').then(d => {
       if (!d.ok) return;
-      const fila = (x, pend) => `<div class="ped">${x.item ? dibujo(x.item, 'quieto') : ''}<div class="pInfo"><b>${x.item ? esc(x.item.tipo === 'huevo' ? 'Huevo #' + x.item.num : nomCr(x.item)) : '—'}</b>
+      const fila = (x, pend) => `<div class="ped">${x.item ? dibujo(x.item, 'quieto') : ''}<div class="pInfo"><b>${x.item ? esc(x.item.tipo === 'huevo' ? 'Huevo #' + x.item.num : nomCr(x.item)) : x.tipo === 'creditos' ? '💎 Recarga de ' + fmt(x.importe) + ' créditos' : '—'}</b>
         <small>${new Date(x.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })} · ${esc(x.id)}</small>
-        <small>Compra <b style="color:var(--tx)">${esc(x.comprador)}</b> · vende ${x.vendedor === 'TIENDA' ? '<b style="color:var(--v)">tu tienda</b>' : '<b style="color:var(--tx)">' + esc(x.vendedor) + '</b> (recibirá ' + euros(Math.floor(x.importe * (DATA.reglas.comision || 50) / 100)) + ' créditos)'}</small>
+        <small>Compra <b style="color:var(--tx)">${esc(x.comprador)}</b> · ${x.tipo === 'creditos' ? 'recarga de créditos: se le sumarán al confirmar' : 'vende ' + (x.vendedor === 'TIENDA' ? '<b style="color:var(--v)">tu tienda</b>' : '<b style="color:var(--tx)">' + esc(x.vendedor) + '</b> (recibirá ' + fmt(Math.floor(x.importe * (DATA.reglas.comision || 50) / 100)) + ' créditos)')}</small>
         ${pend ? '' : `<span class="est ${x.estado}">${x.estado.toUpperCase()}</span> <small>${esc(x.nota)}</small>`}</div>
         <div style="text-align:right"><div class="pImp">${euros(x.importe)} €</div>${pend ? `<div class="acciones" style="justify-content:flex-end;margin-top:6px"><button class="btn peq" data-ok="${x.id}">✓ PAGO RECIBIDO</button><button class="btn rojo peq" data-no="${x.id}">✕ RECHAZAR</button></div>` : ''}</div></div>`;
       c.innerHTML = `<h3 style="font-size:14px;margin-bottom:8px">PENDIENTES DE CONFIRMAR (${d.pendientes.length})</h3>${d.pendientes.map(x => fila(x, true)).join('') || '<p class="nota">No hay pedidos pendientes. 👌</p>'}
@@ -198,11 +198,11 @@ const Admin = (() => {
         <div class="scrollx"><table class="tabla" id="jT"></table></div>`;
       const pintaT = f => {
         $('#jT').innerHTML = '<tr><th>Usuario</th><th>Correo</th><th>Chips</th><th>Créditos</th><th>Arena</th><th>Etapa</th><th>Criat.</th><th></th></tr>' +
-          d.lista.filter(j => !f || (j.usuario + j.email).toLowerCase().includes(f)).map(j => `<tr><td><b>${esc(j.usuario)}</b></td><td>${esc(j.email)}</td><td>${fmt(j.chips)}</td><td>${euros(j.creditos)}</td><td>${j.elo}</td><td>${j.etapa}</td><td>${j.criaturas}</td><td><button class="btn sec peq" data-aj="${j.id}">AJUSTAR</button></td></tr>`).join('');
+          d.lista.filter(j => !f || (j.usuario + j.email).toLowerCase().includes(f)).map(j => `<tr><td><b>${esc(j.usuario)}</b></td><td>${esc(j.email)}</td><td>${fmt(j.chips)}</td><td>${fmt(j.creditos)}</td><td>${j.elo}</td><td>${j.etapa}</td><td>${j.criaturas}</td><td><button class="btn sec peq" data-aj="${j.id}">AJUSTAR</button></td></tr>`).join('');
         $$('[data-aj]').forEach(b => b.onclick = () => {
           const j = d.lista.find(x => x.id === b.dataset.aj);
           const m2 = modal(`<h2>Ajustar saldo de ${esc(j.usuario)}</h2><p class="nota">Pon números positivos para sumar o negativos para restar.</p>
-            <label class="campo"><span>Chips</span><input id="ajC" type="number" value="0"></label><label class="campo"><span>Créditos (en euros, p. ej. 2,50)</span><input id="ajCr" inputmode="decimal" value="0"></label>
+            <label class="campo"><span>Chips</span><input id="ajC" type="number" value="0"></label><label class="campo"><span>Créditos (1 crédito = 1 céntimo)</span><input id="ajCr" type="number" value="0"></label>
             <label class="campo"><span>Motivo</span><input id="ajN" value="Ajuste del administrador"></label><div class="acciones" style="justify-content:flex-end"><button class="btn sec" id="ajX">Cancelar</button><button class="btn" id="ajOk">GUARDAR</button></div>`);
           $('#ajX', m2).onclick = panel;
           $('#ajOk', m2).onclick = () => adm('saldo', { id: j.id, chips: $('#ajC').value, creditos: $('#ajCr').value, nota: $('#ajN').value }).then(r => { if (r.ok) toast('Saldo actualizado', 'ok'); panel(); });

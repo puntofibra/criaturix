@@ -175,7 +175,7 @@ function pintaTop() {
   if (!SES) return;
   const p = SES.perfil;
   $('#tChips span').textContent = fmt(p.chips);
-  $('#tCred span').textContent = euros(p.creditos);
+  $('#tCred span').textContent = fmt(p.creditos);
   $('#tEner span').textContent = p.energia + '/' + p.energiaMax;
   $('#tYo span').textContent = (p.usuario || '?')[0].toUpperCase();
   $('#tSonido').classList.toggle('off', !Son.on);
@@ -283,6 +283,32 @@ function tcHTML(c, o) {
   </div>`;
 }
 
+/* ---------- comprar créditos (1 céntimo = 1 crédito) ---------- */
+const PACKS_CR = [{ c: 500 }, { c: 1000, pop: 1 }, { c: 2500 }, { c: 5000, top: 1 }, { c: 10000 }];
+function comprarCreditos() {
+  if (!SES) return;
+  Son.init(); Son.click();
+  const m = modal(`<div class="crCompra"><div class="crCab"><i class="ic-cred"></i><div><h2>Comprar créditos</h2><p class="nota">Tienes <b style="color:var(--c)">${fmt(SES.perfil.creditos)} créditos</b> · 1 crédito = 1 céntimo</p></div></div>
+    <div class="crPacks">${PACKS_CR.map(p => `<button class="crPack${p.pop ? ' pop' : ''}${p.top ? ' top' : ''}" data-c="${p.c}">${p.pop ? '<span class="crEtq">MÁS POPULAR</span>' : p.top ? '<span class="crEtq oro">MEJOR OPCIÓN</span>' : ''}
+      <i class="ic-cred"></i><b>${fmt(p.c)}</b><small>créditos</small><span class="crPrecio">${euros(p.c)} €</span></button>`).join('')}</div>
+    <p class="nota" style="text-align:center;margin-top:12px">Pagas con myPOS y, en cuanto Futurmovil confirme el pago, los créditos aparecen en tu cuenta.</p>
+    <div class="acciones" style="justify-content:center"><button class="btn sec peq" id="crMovs">VER MIS MOVIMIENTOS</button></div></div>`, { cls: 'ancha' });
+  $('#crMovs', m).onclick = () => { cerrarModal(); ir('cuenta'); };
+  $$('.crPack', m).forEach(b => b.onclick = () => {
+    const c = +b.dataset.c; ocupado(b, true);
+    conSes('recargar', { cantidad: c }).then(d => {
+      ocupado(b, false); if (!d.ok) return toast(d.error, 'err');
+      Son.moneda && Son.moneda();
+      const m2 = modal(`<div class="pago crCompra"><h2 style="padding:0">RECARGA DE ${fmt(c)} CRÉDITOS</h2><div class="imp">${euros(c)} €</div>
+        <a class="btn oro grande bloque" id="crPagar" href="${d.pedido.url}" target="_blank" rel="noopener">PAGAR CON myPOS · ${euros(c)} €</a>
+        <p class="nota">Completa el pago en la ventana de myPOS. En cuanto Futurmovil lo confirme, se sumarán <b style="color:var(--c)">${fmt(c)} créditos</b> a tu cuenta. Puedes ver el estado en tus compras.</p>
+        <div class="acciones" style="justify-content:center"><button class="btn sec" id="crOk">ENTENDIDO</button></div></div>`);
+      $('#crOk', m2).onclick = () => cerrarModal();
+      try { window.open(d.pedido.url, '_blank', 'noopener'); } catch (e) {}
+    });
+  });
+}
+
 /* ---------- salir del juego (botón power) ---------- */
 const ICO_POWER = '<svg viewBox="0 0 24 24"><path d="M12 3v8" stroke-width="2.4" stroke-linecap="round" fill="none"/><path d="M6.4 6.6a8 8 0 1 0 11.2 0" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>';
 function salirJuego() {
@@ -324,7 +350,7 @@ $('#tMarca').onclick = () => ir('inicio');
 $('#tSonido').onclick = () => { Son.init(); const on = Son.alternar(); $('#tSonido').classList.toggle('off', !on); if (on) Son.click(); };
 $('#tYo').onclick = () => ir('cuenta');
 $('#tChips').onclick = () => toast('Chips: los ganas combatiendo y sirven para criar');
-$('#tCred').onclick = () => ir('cuenta');
+$('#tCred').onclick = () => comprarCreditos();
 $('#tEner').onclick = () => toast('Combates con premio que te quedan hoy. Se recargan cada día.');
 
 /* =========================================================
@@ -675,7 +701,7 @@ VISTAS.criadero = (div, idA) => {
     const a = mia(A), b = mia(B);
     if (a && b) {
       const total = coste(a) + coste(b), pr = CX.probCria(a.genes, b.genes);
-      $('#cInfo').innerHTML = `<p class="nota">Coste: <b style="color:var(--o)">${total} chips</b>${R.costeCriaCreditos ? ' + <b style="color:var(--c)">' + euros(R.costeCriaCreditos) + ' créditos</b>' : ''} · El huevo tarda <b>${R.horasEclosion} h</b> en eclosionar</p>
+      $('#cInfo').innerHTML = `<p class="nota">Coste: <b style="color:var(--o)">${total} chips</b>${R.costeCriaCreditos ? ' + <b style="color:var(--c)">' + fmt(R.costeCriaCreditos) + ' créditos</b>' : ''} · El huevo tarda <b>${R.horasEclosion} h</b> en eclosionar</p>
         <button class="btn mag grande" id="bCriar" style="margin-top:10px" ${SES.perfil.chips < total ? 'disabled' : ''}>♥ CRIAR</button>${SES.perfil.chips < total ? `<p class="nota" style="color:var(--r);margin-top:6px">Te faltan ${total - SES.perfil.chips} chips. ¡Combate para conseguirlos!</p>` : ''}`;
       $('#cProb').innerHTML = `<h3 style="margin:16px 0 4px;font-size:13px;color:var(--tx2)">PROBABILIDAD DE CADA PIEZA</h3><div class="prob">${CX.SLOTS.map(sl => `<div class="pb"><h4>${CX.NOM_SLOT[sl].toUpperCase()}</h4>${pr[sl].slice(0, 4).map(x =>
         `<div class="fila" style="--cc:${colClase(CX.parteGen(x.g).c)}"><span style="width:44%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${esc(x.n)}</span><span class="bar"><i style="width:${x.p * 100}%"></i></span><b>${Math.round(x.p * 100)}%</b></div>`).join('')}</div>`).join('')}</div>`;
@@ -762,10 +788,10 @@ const Mercado = (() => {
     conSes('pedidos').then(d => {
       if (!d.ok) return toast(d.error, 'err');
       const enVenta = DATA.criaturas.filter(c => c.estado === 'venta');
-      const fila = (x, comoComprador) => `<div class="ped">${x.item ? dibujo(x.item, 'quieto') : ''}<div class="pInfo"><b>${x.item ? esc(x.item.tipo === 'huevo' ? 'Huevo #' + x.item.num : nomCr(x.item)) : '—'}</b>
-        <small>${new Date(x.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })} · ${comoComprador ? (x.vendedor === 'TIENDA' ? 'Tienda oficial' : 'de ' + esc(x.vendedor)) : 'para ' + esc(x.comprador)}</small>
+      const fila = (x, comoComprador) => `<div class="ped">${x.item ? dibujo(x.item, 'quieto') : ''}<div class="pInfo"><b>${x.item ? esc(x.item.tipo === 'huevo' ? 'Huevo #' + x.item.num : nomCr(x.item)) : x.tipo === 'creditos' ? '💎 ' + fmt(x.importe) + ' créditos' : '—'}</b>
+        <small>${new Date(x.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })} · ${comoComprador ? (x.tipo === 'creditos' ? 'Recarga de créditos' : x.vendedor === 'TIENDA' ? 'Tienda oficial' : 'de ' + esc(x.vendedor)) : 'para ' + esc(x.comprador)}</small>
         <span class="est ${x.estado}">${{ pendiente: 'ESPERANDO CONFIRMACIÓN', pagado: comoComprador ? 'RECIBIDA' : 'VENDIDA', rechazado: 'RECHAZADO', anulado: 'ANULADO' }[x.estado] || x.estado}</span>${x.nota && x.estado !== 'pagado' ? `<small>${esc(x.nota)}</small>` : ''}</div>
-        <div style="text-align:right"><div class="pImp">${euros(x.importe)} €</div>${!comoComprador && x.estado === 'pagado' ? `<small style="color:var(--c);font-weight:700">+${euros(Math.floor(x.importe * (DATA.reglas.comision || 50) / 100))} créditos</small>` : ''}
+        <div style="text-align:right"><div class="pImp">${euros(x.importe)} €</div>${!comoComprador && x.estado === 'pagado' ? `<small style="color:var(--c);font-weight:700">+${fmt(Math.floor(x.importe * (DATA.reglas.comision || 50) / 100))} créditos</small>` : ''}
         ${comoComprador && x.estado === 'pendiente' ? `<div class="acciones" style="justify-content:flex-end;margin-top:6px"><a class="btn oro peq" target="_blank" rel="noopener" href="${x.url}">PAGAR</a><button class="btn sec peq" data-anular="${x.id}">ANULAR</button></div>` : ''}</div></div>`;
       $('#mCont').innerHTML = `<div class="panel" style="margin-bottom:14px"><h3 style="font-size:14px;margin-bottom:10px">MIS COMPRAS</h3>${d.compras.map(x => fila(x, true)).join('') || '<p class="nota">Aún no has comprado nada.</p>'}</div>
         <div class="panel" style="margin-bottom:14px"><h3 style="font-size:14px;margin-bottom:10px">PUESTO A LA VENTA</h3><div class="rejilla">${enVenta.map(c => tcHTML(c, { mercado: true })).join('')}</div>${enVenta.length ? '' : '<p class="nota">No tienes nada a la venta. Abre una criatura o un huevo y pulsa «Vender».</p>'}</div>
@@ -803,7 +829,7 @@ const Mercado = (() => {
       <p class="nota" id="vInfo">Recibirás el ${R.comision} % del precio en créditos cuando el comprador pague.</p>
       <div class="acciones" style="justify-content:flex-end"><button class="btn sec" onclick="cerrarModal()">Cancelar</button><button class="btn oro" id="vOk">PONER A LA VENTA</button></div>`);
     const inp = $('#vPre', m);
-    inp.oninput = () => { const v = parseFloat(inp.value.replace(',', '.')) || 0; $('#vInfo').innerHTML = v ? `Si se vende a <b>${euros(v * 100)} €</b> recibirás <b style="color:var(--c)">${euros(Math.floor(v * 100 * R.comision / 100))} créditos</b>.` : `Recibirás el ${R.comision} % del precio en créditos cuando el comprador pague.`; };
+    inp.oninput = () => { const v = parseFloat(inp.value.replace(',', '.')) || 0; $('#vInfo').innerHTML = v ? `Si se vende a <b>${euros(v * 100)} €</b> recibirás <b style="color:var(--c)">${fmt(Math.floor(v * 100 * R.comision / 100))} créditos</b>.` : `Recibirás el ${R.comision} % del precio en créditos cuando el comprador pague.`; };
     setTimeout(() => inp.focus(), 100);
     $('#vOk', m).onclick = e => {
       ocupado(e.target, true);
@@ -879,7 +905,7 @@ VISTAS.ranking = div => {
 VISTAS.cuenta = div => {
   const p = SES.perfil;
   div.innerHTML = `<div class="ancho"><div class="tit"><h1>MI CUENTA</h1></div>
-    <div class="arenaTop"><div class="kpi"><b style="color:var(--o)">${fmt(p.chips)}</b><small>CHIPS</small></div><div class="kpi"><b>${euros(p.creditos)}</b><small>CRÉDITOS</small></div><div class="kpi"><b style="color:var(--v)">${p.energia}/${p.energiaMax}</b><small>COMBATES HOY</small></div></div>
+    <div class="arenaTop"><div class="kpi"><b style="color:var(--o)">${fmt(p.chips)}</b><small>CHIPS</small></div><div class="kpi"><b>${fmt(p.creditos)}</b><small>CRÉDITOS</small></div><div class="kpi"><b style="color:var(--v)">${p.energia}/${p.energiaMax}</b><small>COMBATES HOY</small></div></div>
     <div class="panel" style="margin-bottom:14px"><p><b>${esc(p.usuario)}</b> · <span class="nota">${esc(p.email)}</span></p>
     <p class="nota" style="margin-top:8px">Los <b>créditos</b> son lo que ganas al vender tus criaturas y huevos (1 céntimo = 1 crédito). Pronto podrás usarlos dentro del juego.</p>
     <div class="acciones"><button class="btn sec" id="bMus">${load('mus', true) ? '♫ QUITAR MÚSICA' : '♫ PONER MÚSICA'}</button><button class="btn sec" id="bIns">⤓ INSTALAR</button><button class="btn sec" id="bCom">⇪ COMPARTIR</button><button class="btn rojo" id="bSalir">CERRAR SESIÓN</button></div></div>
@@ -889,7 +915,7 @@ VISTAS.cuenta = div => {
   $('#bIns').onclick = instalar; $('#bCom').onclick = compartir;
   conSes('movimientos').then(d => {
     if (!d.ok) return;
-    $('#movs').innerHTML = d.lista.length ? `<table class="tabla">${d.lista.map(m => `<tr><td style="color:var(--tx2);white-space:nowrap">${new Date(m.fecha).toLocaleDateString('es-ES')}</td><td>${esc(m.concepto)}</td><td style="text-align:right;white-space:nowrap">${m.creditos ? `<b style="color:${m.creditos > 0 ? 'var(--c)' : 'var(--r)'}">${m.creditos > 0 ? '+' : ''}${euros(m.creditos)} cr</b> ` : ''}${m.chips ? `<b style="color:var(--o)">${m.chips > 0 ? '+' : ''}${m.chips} chips</b>` : ''}</td></tr>`).join('')}</table>` : 'Aún no hay movimientos.';
+    $('#movs').innerHTML = d.lista.length ? `<table class="tabla">${d.lista.map(m => `<tr><td style="color:var(--tx2);white-space:nowrap">${new Date(m.fecha).toLocaleDateString('es-ES')}</td><td>${esc(m.concepto)}</td><td style="text-align:right;white-space:nowrap">${m.creditos ? `<b style="color:${m.creditos > 0 ? 'var(--c)' : 'var(--r)'}">${m.creditos > 0 ? '+' : ''}${fmt(m.creditos)} cr</b> ` : ''}${m.chips ? `<b style="color:var(--o)">${m.chips > 0 ? '+' : ''}${m.chips} chips</b>` : ''}</td></tr>`).join('')}</table>` : 'Aún no hay movimientos.';
   });
 };
 
@@ -900,7 +926,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 29;   // subir este número (y version.json) en cada actualización
+const VERSION = 30;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();
