@@ -123,6 +123,7 @@ function nuevoId_(pre) { const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const b
 function freno_(clave, max, seg) { const c = CacheService.getScriptCache(), n = Number(c.get(clave) || 0); if (n >= max) throw new Error('Demasiados intentos. Espera unos minutos.'); c.put(clave, String(n + 1), seg); }
 let LOCK_DENTRO_ = false;   // el bloqueo se puede anidar dentro de la misma ejecución
 function conLock_(fn) { if (LOCK_DENTRO_) return fn(); const lock = LockService.getScriptLock(); lock.waitLock(20000); LOCK_DENTRO_ = true; try { return fn(); } finally { LOCK_DENTRO_ = false; lock.releaseLock(); } }
+function urlPago_(cent) { cent = Math.round(Number(cent) || 0); return MYPOS + (cent % 100 ? euros_(cent) : String(cent / 100)); }   // myPOS: /5 = 5 €, /7,50 = 7,50 €
 function euros_(cent) { return (cent / 100).toFixed(2).replace('.', ','); }
 function hoy_() { return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd'); }
 function num_(v) { return Number(v) || 0; }
@@ -384,7 +385,7 @@ function comprar_(p) {
       MailApp.sendEmail({ to: ADMIN_EMAIL, name: 'CRIATURIX', subject: '💰 Pedido ' + euros_(importe) + ' € de ' + s.row[U.Usuario],
         htmlBody: mail_('<b>' + s.row[U.Usuario] + '</b> quiere comprar <b>' + nombreDe_(r) + '</b> (' + r[C.Tipo] + ') por <b>' + euros_(importe) + ' €</b>.<br>Vendedor: ' + (String(r[C.Dueno]) === TIENDA ? 'Tienda oficial' : r[C.DuenoNombre]) + '<br>Pedido: ' + id + '<p>Cuando recibas el pago en myPOS, confírmalo en el panel de administración.</p><p><a style="color:#00e5ff" href="' + WEB + '">' + WEB + '</a></p>') });
     } catch (e) {}
-    return { ok: true, pedido: { id, importe, url: MYPOS + euros_(importe) } };
+    return { ok: true, pedido: { id, importe, url: urlPago_(importe) } };
   });
 }
 const PACKS_CREDITOS = [500, 1000, 2500, 5000, 10000];   // créditos (1 crédito = 1 céntimo)
@@ -402,7 +403,7 @@ function recargar_(p) {
       MailApp.sendEmail({ to: ADMIN_EMAIL, name: 'CRIATURIX', subject: '💎 Recarga de ' + cant + ' créditos (' + euros_(cant) + ' €) de ' + s.row[U.Usuario],
         htmlBody: mail_('<b>' + s.row[U.Usuario] + '</b> quiere comprar <b>' + cant + ' créditos</b> por <b>' + euros_(cant) + ' €</b>.<br>Pedido: ' + id + '<p>Cuando recibas el pago en myPOS, confírmalo en el panel de administración y se le sumarán los créditos.</p><p><a style="color:#00e5ff" href="' + WEB + '">' + WEB + '</a></p>') });
     } catch (e) {}
-    return { ok: true, pedido: { id, importe: cant, creditos: cant, url: MYPOS + euros_(cant) } };
+    return { ok: true, pedido: { id, importe: cant, creditos: cant, url: urlPago_(cant) } };
   });
 }
 function cancelarPedido_(p) {
@@ -420,7 +421,7 @@ function pedPub_(x, crIdx) {
   const r = crIdx[String(x[P.IdCriatura])];
   return { id: String(x[P.Id]), fecha: x[P.Fecha] instanceof Date ? x[P.Fecha].getTime() : 0, comprador: String(x[P.Comprador]), idComprador: String(x[P.IdComprador]),
     vendedor: String(x[P.Vendedor]), idVendedor: String(x[P.IdVendedor]), tipo: String(x[P.Tipo]), importe: num_(x[P.Importe]), estado: String(x[P.Estado]),
-    nota: String(x[P.Nota] || ''), url: MYPOS + euros_(num_(x[P.Importe])), item: r ? pub_(r, false) : null };
+    nota: String(x[P.Nota] || ''), url: urlPago_(num_(x[P.Importe])), item: r ? pub_(r, false) : null };
 }
 function misPedidos_(p) {
   const s = sesion_(p.token), uid = String(s.row[U.Id]), ped = tabla_(hoja_('Pedidos', CAB_P), CAB_P.length), cr = criaturas_(), idx = {};
