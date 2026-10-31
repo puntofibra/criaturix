@@ -435,7 +435,14 @@ function instalar() {
 function compartir() {
   Son.init(); Son.click();
   const txt = '¡Juega conmigo a CRIATURIX! Cría y combate con criaturas robot 🤖⚡', url = CFG.URL;
-  if (navigator.share) return navigator.share({ title: 'CRIATURIX', text: txt, url }).catch(() => {});
+  if (navigator.share) {   // intenta compartir la ilustración junto al enlace
+    const sinImg = () => navigator.share({ title: 'CRIATURIX', text: txt, url }).catch(() => {});
+    return fetch('img/compartir.jpg?v=1').then(r => r.blob()).then(b => {
+      const f = new File([b], 'criaturix.jpg', { type: 'image/jpeg' });
+      if (navigator.canShare && navigator.canShare({ files: [f] })) return navigator.share({ title: 'CRIATURIX', text: txt + '\n' + url, files: [f] }).catch(e => { if (e && e.name !== 'AbortError') sinImg(); });
+      return sinImg();
+    }).catch(sinImg);
+  }
   const c = modal(`<h2>Compartir CRIATURIX</h2><div class="acciones">
     <a class="btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(txt + ' ' + url)}">WhatsApp</a>
     <a class="btn cian" href="mailto:?subject=CRIATURIX&body=${encodeURIComponent(txt + '\n' + url)}">Correo</a>
@@ -844,7 +851,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 22;   // subir este número (y version.json) en cada actualización
+const VERSION = 23;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();
