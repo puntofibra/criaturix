@@ -549,7 +549,7 @@ const ICO = {
   robot: '<svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="5"/><path d="M8 3v4M16 3v4" stroke="currentColor" stroke-width="2"/></svg>'
 };
 const UIV = '?v=1', imU = (f, c) => `<img class="la ${c}" src="img/ui/${f}.webp${UIV}" alt="" draggable="false">`;
-const LOSA_FONDO = {};   // fondos ilustrados (img/ui/fondo_<vista>.webp): poner aventura: 1, arena: 1... cuando estén
+const LOSA_FONDO = { aventura: 1, arena: 1, criaturas: 1, criadero: 1, mercado: 1, ranking: 1 };   // fondos ilustrados img/ui/fondo_<vista>.webp
 const COPA_SVG = '<svg class="lCopa" viewBox="0 0 64 64"><defs><linearGradient id="gCopa" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6b0"/><stop offset=".45" stop-color="#ffd23f"/><stop offset="1" stop-color="#b86a00"/></linearGradient></defs><path fill="none" stroke="url(#gCopa)" stroke-width="4" d="M18 10H9v4c0 6 4 10 10 10M46 10h9v4c0 6-4 10-10 10"/><path fill="url(#gCopa)" d="M17 5h30v11c0 9-6.5 16-15 16S17 25 17 16z"/><path fill="url(#gCopa)" d="M28 31h8v9h-8zM22 40h20l3 8H19z"/><rect x="15" y="48" width="34" height="9" rx="2.5" fill="url(#gCopa)"/><path d="M23 9q1 13 8 17" stroke="#fff" stroke-width="2.4" fill="none" opacity=".55" stroke-linecap="round"/><path d="M32 10.5l2.3 4.7 5.1.7-3.7 3.6.9 5.1-4.6-2.4-4.6 2.4.9-5.1-3.7-3.6 5.1-.7z" fill="#fffbe0"/></svg>';
 const LOSA_ARTE = {
   aventura: `<i class="lSuelo"></i>${imU('cx_bio', 'solo')}<svg class="lPin" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.6" fill="#05060f"/></svg>`,
@@ -560,7 +560,7 @@ const LOSA_ARTE = {
   ranking: `<i class="lSuelo"></i>${COPA_SVG}<i class="lEst s1">★</i><i class="lEst s2">★</i><i class="lEst s3">★</i>`
 };
 function losa(v, titulo, sub, col, ico, extra, badge) {
-  return `<button class="losa" data-ir="${v}" style="--lc:${col}"><span class="lFondo"${LOSA_FONDO[v] ? ` style="background-image:url(img/ui/fondo_${v}.webp${UIV})"` : ''}></span><span class="lRejilla"></span>
+  return `<button class="losa${LOSA_FONDO[v] ? ' conFondo' : ''}" data-ir="${v}" style="--lc:${col}"><span class="lFondo"${LOSA_FONDO[v] ? ` style="background-image:url(img/ui/fondo_${v}.webp${UIV})"` : ''}></span><span class="lRejilla"></span>
     <span class="lArte">${LOSA_ARTE[v] || ''}</span><i class="lChispa"></i><i class="lChispa"></i><i class="lChispa"></i><i class="lChispa"></i><span class="lBrillo"></span><i class="lEsq e1"></i><i class="lEsq e2"></i>
     ${badge ? `<em class="lBadge">${badge}</em>` : ''}<span class="lTxt"><b>${titulo}</b><small>${sub}</small>${extra || ''}</span></button>`;
 }
@@ -945,7 +945,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 34;   // subir este número (y version.json) en cada actualización
+const VERSION = 35;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();
