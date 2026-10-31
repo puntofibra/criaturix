@@ -41,6 +41,7 @@ const Combate = (() => {
     $('#cVel').onclick = () => { vel = vel >= 3 ? 1 : vel + 1; store('vel', vel); $('#cVel').textContent = 'x' + vel; Son.click(); };
     pintaLados(); pintaMano();
     FX.montar($('#campo'));
+    if (window.ARENA) ARENA.montar(div);
     if (!S.visto) { S.visto = 1; intro(div); }
   }
   /* ---------- presentación VS ---------- */

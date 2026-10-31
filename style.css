@@ -359,7 +359,6 @@ canvas#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0}
   .campo2{grid-template-rows:1fr;grid-template-columns:1fr 1fr;gap:20px}
   .lado{grid-template-columns:repeat(3,1fr);align-items:center}
   .lado.yo{order:1}.lado.el{order:2}
-  .lado .lu:nth-child(2){transform:translateY(-18%)}
 }
 .lu{position:relative;display:flex;flex-direction:column;align-items:center;min-width:0;transition:opacity .5s,filter .5s}
 .lu .cuerpo{position:relative;width:100%;max-width:190px;aspect-ratio:240/200}
@@ -598,3 +597,17 @@ body.hitstop .rb *{animation-play-state:paused!important}
 @keyframes parpS2{0%,85%{transform:translateY(-101%);animation-timing-function:cubic-bezier(.6,0,.9,.6)}87%,87.6%{transform:translateY(0)}89.6%{transform:translateY(-75%);animation-timing-function:cubic-bezier(.6,0,.9,.6)}91.4%,92.2%{transform:translateY(0);animation-timing-function:cubic-bezier(.15,.5,.35,1)}95.6%,100%{transform:translateY(-101%)}}
 @keyframes parpI2{0%,85%{transform:translateY(101%)}87%,87.6%{transform:translateY(0)}89.6%{transform:translateY(85%)}91.4%,92.2%{transform:translateY(0)}95.6%,100%{transform:translateY(101%)}}
 .rb.quieto .rb-parp path{visibility:hidden}
+
+/* combate en ordenador: misma altura y más grandes */
+@media (orientation:landscape) and (min-width:700px){
+  .lado,.lado.el{align-items:center}
+  .lu .cuerpo{max-width:min(300px,15vw)}
+  .lu .hp{max-width:min(210px,11vw);height:12px}
+  .lu .hpTxt{font-size:13px}.lu .luNom{font-size:13px}
+}
+
+/* ---------- arena de combate ---------- */
+.vista.combate{position:relative;background:#03040d}
+.vista.combate>.arenaBg{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.vista.combate>.cbTop,.vista.combate>.campo2,.vista.combate>.cbBajo{position:relative;z-index:1}
+.vista.combate .cbBajo{background:linear-gradient(180deg,rgba(3,4,13,0),rgba(3,4,13,.75) 30%)}
