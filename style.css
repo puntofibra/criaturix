@@ -129,8 +129,8 @@ canvas#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0}
 .rb .rb-ant{animation:antena 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
 .rb .rb-ant.a2{animation-delay:-1.1s}
 @keyframes antena{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(6deg)}}
-.rb .rb-cola{animation:cola 2s ease-in-out infinite;transform-box:fill-box;transform-origin:100% 50%}
-@keyframes cola{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(8deg)}}
+.rb .rb-cola{animation:cola 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:100% 85%}
+@keyframes cola{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(4deg)}}
 .rb .rb-ojos{animation:parpadeo 5s infinite;transform-box:fill-box;transform-origin:50% 50%}
 @keyframes parpadeo{0%,46%,50%,100%{transform:scaleY(1)}48%{transform:scaleY(.1)}}
 .rb .rb-fuego{animation:fuego .18s steps(2) infinite alternate;transform-box:fill-box;transform-origin:50% 0}
