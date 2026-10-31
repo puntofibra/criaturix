@@ -66,8 +66,17 @@ const Son = (() => {
       paso++; prox += 0.15;
     }
   }
+  let pausadoFondo = false;
+  function fondo(oculto) {   // pantalla apagada / otra app: se calla la música
+    if (!ac) return;
+    if (oculto) { if (ac.state === 'running') { pausadoFondo = true; ac.suspend().catch(() => {}); } }
+    else if (pausadoFondo) { pausadoFondo = false; ac.resume().catch(() => {}); prox = ac.currentTime + 0.1; }
+  }
+  document.addEventListener('visibilitychange', () => fondo(document.visibilityState !== 'visible'));
+  addEventListener('pagehide', () => fondo(true));
+  addEventListener('pageshow', () => { if (document.visibilityState === 'visible') fondo(false); });
   return {
-    init, get on() { return on; },
+    init, get on() { return on; }, callar() { if (ac) { pausadoFondo = false; ac.suspend().catch(() => {}); } },
     alternar() { on = !on; store('son', on); if (master) master.gain.value = on ? 0.8 : 0; return on; },
     click() { tono(880, 0.06, 'square', 0.06); },
     carta() { tono(660, 0.08, 'triangle', 0.12, 1.5); },
@@ -274,6 +283,26 @@ function tcHTML(c, o) {
   </div>`;
 }
 
+/* ---------- salir del juego (botón power) ---------- */
+const ICO_POWER = '<svg viewBox="0 0 24 24"><path d="M12 3v8" stroke-width="2.4" stroke-linecap="round" fill="none"/><path d="M6.4 6.6a8 8 0 1 0 11.2 0" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>';
+function salirJuego() {
+  try { Son.click(); } catch (e) {}
+  const m = modal(`<div class="salirJ"><div class="sjIco">${ICO_POWER}</div><h2>¿Salir de CRIATURIX?</h2><p class="nota">Tu progreso está guardado. Podrás volver cuando quieras.</p>
+    <div class="acciones"><button class="btn rojo" id="sjSi">SALIR DEL JUEGO</button><button class="btn sec" id="sjNo">SEGUIR JUGANDO</button></div></div>`);
+  $('#sjNo', m).onclick = () => cerrarModal();
+  $('#sjSi', m).onclick = () => {
+    cerrarModal(); try { Son.callar(); } catch (e) {}
+    try { window.close(); } catch (e) {}
+    setTimeout(() => {   // si el navegador no deja cerrar la ventana, pantalla de despedida
+      if (document.querySelector('.adios')) return;
+      const d = document.createElement('div'); d.className = 'adios';
+      d.innerHTML = `<img src="img/logo_criaturix.webp?v=2" alt="CRIATURIX"><b>¡HASTA PRONTO!</b><small>Ya puedes cerrar esta ventana</small><button class="btn" id="adVolver">VOLVER A JUGAR</button>`;
+      document.body.appendChild(d); $('#adVolver', d).onclick = () => location.reload();
+    }, 350);
+  };
+}
+document.addEventListener('click', e => { if (e.target.closest('.bPower')) { e.preventDefault(); salirJuego(); } });
+
 /* =========================================================
    NAVEGACIÓN
    ========================================================= */
@@ -303,7 +332,7 @@ $('#tEner').onclick = () => toast('Combates con premio que te quedan hoy. Se rec
    ========================================================= */
 VISTAS.login = div => {
   const g1 = CX.genesAzar(Date.now() % 9973, 'bio', 0.9), g2 = CX.genesAzar((Date.now() + 7) % 9973, 'cuantico', 0.9), g3 = CX.genesAzar((Date.now() + 13) % 9973, 'plasma', 0.9);
-  div.innerHTML = `<div class="login">
+  div.innerHTML = `<button class="ibtn bPower lPower" aria-label="Salir del juego" title="Salir del juego">${ICO_POWER}</button><div class="login">
     <div class="lHero">
       <img class="lLogo" id="lLogo" src="img/logo.webp" alt="Futurmovil">
       <div class="lPresenta">PRESENTA</div>
@@ -454,7 +483,7 @@ function cartelInstalar() {
 setTimeout(cartelInstalar, 1600);
 function compartir() {
   Son.init(); Son.click();
-  const txt = '¡Juega conmigo a CRIATURIX! Cría y combate con criaturas robot 🤖⚡', url = CFG.URL;
+  const txt = '¡Juega conmigo a CRIATURIX! 🤖⚡ Cría, combate y gana dinero real con criaturas robot.', url = CFG.URL;
   if (navigator.share) {   // intenta compartir la ilustración junto al enlace
     const sinImg = () => navigator.share({ title: 'CRIATURIX', text: txt, url }).catch(() => {});
     return fetch('img/compartir.jpg?v=1').then(r => r.blob()).then(b => {
@@ -871,7 +900,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 28;   // subir este número (y version.json) en cada actualización
+const VERSION = 29;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();

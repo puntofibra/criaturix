@@ -690,3 +690,19 @@ body.hitstop .rb *{animation-play-state:paused!important}
 @keyframes lCxIn{from{opacity:0;transform:scale(.6) translateY(20px);filter:blur(8px)}}
 @keyframes lCxFlota{50%{transform:translateY(-6px)}}
 @media (min-width:900px) and (min-height:560px){.lPresenta{padding-left:0}.lCx img{margin-left:-2%}}
+
+/* ---------- botón power (salir del juego) ---------- */
+.bPower svg{stroke:currentColor;fill:none}
+.ibtn.bPower{color:#ff6b7a;opacity:.7;transition:opacity .2s,color .2s,box-shadow .2s}
+.ibtn.bPower:hover,.ibtn.bPower:active{opacity:1;color:#ff2b4e;box-shadow:0 0 12px rgba(255,43,78,.55)}
+.lPower{position:fixed;top:calc(10px + var(--safeT,0px));right:10px;z-index:40;width:34px;height:34px}
+.cbTop .bPower{width:32px;height:32px}
+@media (max-width:420px){#top .tBtns{gap:4px}#top .ibtn{width:32px;height:32px}}
+.salirJ{text-align:center}
+.salirJ .sjIco{width:62px;height:62px;margin:4px auto 8px;border-radius:50%;display:grid;place-items:center;color:#ff2b4e;background:radial-gradient(circle,rgba(255,43,78,.25),transparent 70%);box-shadow:0 0 0 2px rgba(255,43,78,.6),0 0 24px rgba(255,43,78,.5);animation:latido 1.6s ease-in-out infinite}
+.salirJ .sjIco svg{width:32px;height:32px;stroke:currentColor}
+.salirJ .acciones{justify-content:center}
+.adios{position:fixed;inset:0;z-index:99998;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:radial-gradient(ellipse at 50% 45%,#141a33,#03040d 70%);animation:fade .5s;text-align:center;padding:20px}
+.adios img{width:min(420px,80%);filter:drop-shadow(0 0 16px rgba(177,75,255,.4))}
+.adios b{font-family:Orbitron;font-weight:900;letter-spacing:.2em;font-size:20px;color:#19ff6a;text-shadow:0 0 12px #19ff6a}
+.adios small{color:var(--tx2)}
