@@ -80,6 +80,16 @@ var FUEGO = (function () {
       var p = st.p[i]; p.l -= dt; if (p.l <= 0) { st.p.splice(i, 1); continue; }
       p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= p.dr || .97; p.vy *= p.dr || .97; if (p.gy) p.vy += p.gy * dt;
       var k = p.l / p.m;
+      if (p.luz) {   // luciérnaga: vuela a la deriva y parpadea
+        p.ph += dt; p.vx += Math.sin(p.ph * p.fw) * 38 * p.u * dt; p.vy += (Math.cos(p.ph * p.fw * .8) * 38 - 5) * p.u * dt;
+        p.vx *= .992; p.vy *= .992; p.l += dt * 0;
+        var vida = 1 - k, ent = Math.min(1, vida * p.m / .4), fade = Math.min(ent, Math.min(1, p.l / .8));
+        var bl = .45 + .55 * Math.pow(.5 + .5 * Math.sin(p.ph * 4.2 + p.fw), 2);
+        g.globalCompositeOperation = 'lighter'; g.globalAlpha = fade * bl * .55;
+        var ro = p.r * 4.5; g.drawImage(spr(p.c), p.x - ro, p.y - ro, ro * 2, ro * 2);
+        g.globalAlpha = fade * bl; var rc = p.r * 1.3; g.drawImage(spr('#ffffff'), p.x - rc, p.y - rc, rc * 2, rc * 2);
+        continue;
+      }
       if (p.humo) {
         g.globalCompositeOperation = p.humo === 2 ? 'source-over' : 'lighter';
         var r = p.r * (1 + (1 - k) * p.cr); g.globalAlpha = Math.min(1, k * 1.6) * p.a;
@@ -171,20 +181,9 @@ var FUEGO = (function () {
         break;
       }
 
-      case 'cuantico': {   // haz de luz con destello
-        var pul = .75 + Math.sin(t * 3.2) * .25, Lh = (46 + Math.sin(t * 2.1) * 4) * u;
-        glow('#00e5ff', x, y, 16 * u, .5 * pul);
-        g.save(); g.translate(x, y); g.rotate(ang);
-        var gr = g.createLinearGradient(0, 0, Lh, 0); gr.addColorStop(0, 'rgba(255,255,255,' + (.85 * pul) + ')'); gr.addColorStop(.25, 'rgba(138,249,255,' + (.5 * pul) + ')'); gr.addColorStop(1, 'rgba(0,229,255,0)');
-        g.fillStyle = gr; g.beginPath(); g.moveTo(0, -2 * u); g.lineTo(Lh, -9 * u); g.lineTo(Lh, 9 * u); g.lineTo(0, 2 * u); g.closePath(); g.fill();
-        g.fillStyle = 'rgba(255,255,255,' + (.6 * pul) + ')'; g.beginPath(); g.moveTo(0, -.8 * u); g.lineTo(Lh * .7, -2.5 * u); g.lineTo(Lh * .7, 2.5 * u); g.lineTo(0, .8 * u); g.fill();
-        g.restore();
-        // destello en estrella que gira
-        g.save(); g.translate(x, y); g.rotate(t * 1.5); var sz = (7 + Math.sin(t * 7) * 2.5) * u;
-        g.fillStyle = 'rgba(255,255,255,.95)';
-        for (var e = 0; e < 2; e++) { g.rotate(Math.PI / 4 * e); g.beginPath(); g.moveTo(0, -sz); g.lineTo(sz * .14, 0); g.lineTo(0, sz); g.lineTo(-sz * .14, 0); g.closePath(); g.fill(); g.beginPath(); g.moveTo(-sz, 0); g.lineTo(0, sz * .14); g.lineTo(sz, 0); g.lineTo(0, -sz * .14); g.closePath(); g.fill(); }
-        g.restore(); glow('#ffffff', x, y, 5 * u, .9);
-        if (R() < .2) { var fq = rnd(.2, 1); emite(st, { x: x + cs * Lh * fq + rnd(-4, 4) * u, y: y + sn * Lh * fq + rnd(-4, 4) * u, vx: cs * 12 * u, vy: sn * 12 * u, l: rnd(.4, .9), m: .9, r: rnd(1.2, 2.4) * u, c: '#8af9ff', tw: 1 }); }
+      case 'cuantico': {   // luciérnagas de luz cian que salen de los cristales y revolotean
+        glow('#00e5ff', x, y, 7 * u, .25 + Math.sin(t * 2.3) * .1);
+        if (R() < .06) emite(st, { luz: 1, x: x + rnd(-2, 2) * u, y: y + rnd(-2, 2) * u, vx: (cs * rnd(22, 40) + rnd(-14, 14)) * u, vy: (sn * rnd(22, 40) + rnd(-14, 14)) * u, l: rnd(2.8, 4.2), m: 4.2, r: rnd(1, 1.7) * u, u: u, ph: R() * 9, fw: rnd(1.5, 3), c: R() < .7 ? '#00e5ff' : '#8af9ff' });
         break;
       }
 
