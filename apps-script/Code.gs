@@ -45,6 +45,7 @@ const ACCIONES = {
   recargar: p => recargar_(p), cancelar: p => cancelarPedido_(p), pedidos: p => misPedidos_(p), movimientos: p => movimientos_(p),
   ranking: p => ranking_(p),
   combate: p => combateInicio_(p), turno: p => combateTurno_(p), rendirse: p => combateRendirse_(p), encurso: p => combateEnCurso_(p),
+  buscar: p => buscarRival_(p), nobuscar: p => noBuscar_(p), esperar: p => esperar_(p),
   admin_entrar: p => adminEntrar_(p), qr_nuevo: p => qrNuevo_(), qr_estado: p => qrEstado_(p),   // sin Google Authenticator: solo llave NFC (o QR + llave)
   admin: p => admin_(p)
 };
@@ -90,6 +91,9 @@ const AJUSTES = [
   ['chipsInicio', 200, 'Chips de regalo al crear la cuenta'],
   ['pvpGana', 18, 'Chips por victoria en la arena'],
   ['precioMin', 1, 'Precio mínimo de venta en euros'],
+  ['arenaEspera', 5, 'Segundos que la arena espera a un jugador real antes de jugar contra un bot'],
+  ['arenaRepetir', 2, 'Partidas que tienen que pasar antes de volver a enfrentarse al mismo jugador real'],
+  ['turnoSeg', 40, 'Segundos para elegir cartas en los combates entre dos jugadores'],
   ['aviso', '', 'Aviso que ven los jugadores en el inicio (vacío = nada)']
 ];
 function hojaConfig_() {
@@ -102,7 +106,7 @@ function cfg_() {
   const c = CacheService.getScriptCache(), v = c.get('cfg'); if (v) return JSON.parse(v);
   const o = {}; AJUSTES.forEach(a => o[a[0]] = a[1]);
   tabla_(hojaConfig_(), 2).forEach(r => { if (r[0]) o[r[0]] = r[1]; });
-  ['horasEclosion', 'maxCrias', 'costeCriaCreditos', 'comision', 'energiaDia', 'chipsInicio', 'pvpGana', 'precioMin'].forEach(k => o[k] = Number(o[k]) || 0);
+  ['horasEclosion', 'maxCrias', 'costeCriaCreditos', 'comision', 'energiaDia', 'chipsInicio', 'pvpGana', 'precioMin', 'arenaEspera', 'arenaRepetir', 'turnoSeg'].forEach(k => o[k] = Number(o[k]) || 0);
   o.costeCria = String(o.costeCria).split(/[,;\s]+/).map(Number).filter(n => n >= 0);
   c.put('cfg', JSON.stringify(o), 300);
   return o;
@@ -117,7 +121,8 @@ function usuarioValido_(u) { return /^[A-Za-z0-9ÑñÁÉÍÓÚáéíóúÜü_.\-
 function passValida_(p) { return typeof p === 'string' && p.length >= 6 && p.length <= 100; }
 function nuevoId_(pre) { const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const b = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, Utilities.getUuid() + Date.now()); let s = pre; for (let i = 0; i < 9; i++) s += abc[(b[i] & 255) % abc.length]; return s; }
 function freno_(clave, max, seg) { const c = CacheService.getScriptCache(), n = Number(c.get(clave) || 0); if (n >= max) throw new Error('Demasiados intentos. Espera unos minutos.'); c.put(clave, String(n + 1), seg); }
-function conLock_(fn) { const lock = LockService.getScriptLock(); lock.waitLock(20000); try { return fn(); } finally { lock.releaseLock(); } }
+let LOCK_DENTRO_ = false;   // el bloqueo se puede anidar dentro de la misma ejecución
+function conLock_(fn) { if (LOCK_DENTRO_) return fn(); const lock = LockService.getScriptLock(); lock.waitLock(20000); LOCK_DENTRO_ = true; try { return fn(); } finally { LOCK_DENTRO_ = false; lock.releaseLock(); } }
 function euros_(cent) { return (cent / 100).toFixed(2).replace('.', ','); }
 function hoy_() { return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd'); }
 function num_(v) { return Number(v) || 0; }
@@ -201,7 +206,7 @@ function google_(p) {
     return nuevaSesion_(f.sh, f.rows.length, row);
   });
 }
-function salir_(p) { try { const s = sesion_(p.token); s.row[U.Token] = ''; s.row[U.TokenExpira] = ''; guarda_(s.sh, s.i, s.row); } catch (e) {} return { ok: true }; }
+function salir_(p) { try { CacheService.getScriptCache().remove('tk_' + String(p.token || '').slice(0, 60)); const s = sesion_(p.token); s.row[U.Token] = ''; s.row[U.TokenExpira] = ''; guarda_(s.sh, s.i, s.row); } catch (e) {} return { ok: true }; }
 function recuperar_(p) {
   const email = limpiaEmail_(p.email);
   freno_('rec_' + email, 4, 1800);
@@ -448,84 +453,249 @@ const NOMBRES_BOT = ['Óxido', 'Tornillo', 'Chispa', 'Pixel', 'Bit', 'Tuerca', '
 function equipoBot_(genes, pre) { return genes.map((g, i) => ({ id: pre + i, nom: NOMBRES_BOT[(i * 5 + g.p.boca[0].length + g.col) % NOMBRES_BOT.length] + '-' + (100 + i * 37 % 900), genes: g })); }
 function guardarCombate_(uid, B) { CacheService.getScriptCache().put('cb_' + uid, JSON.stringify(B), 21600); }
 function cargarCombate_(uid) { const v = CacheService.getScriptCache().get('cb_' + uid); return v ? JSON.parse(v) : null; }
+function cGet_(k) { const v = CacheService.getScriptCache().get(k); if (!v) return null; try { return JSON.parse(v); } catch (e) { return null; } }
+function cPut_(k, o, seg) { CacheService.getScriptCache().put(k, JSON.stringify(o), seg || 21600); }
+/* sesión rápida (solo el id del jugador) para las llamadas que se repiten cada segundo */
+function uidRapido_(token) {
+  token = String(token || ''); const c = CacheService.getScriptCache(), k = 'tk_' + token.slice(0, 60), v = c.get(k);
+  if (v && token.length >= 30) return v;
+  const uid = String(sesion_(token).row[U.Id]); c.put(k, uid, 600); return uid;
+}
+
+/* ---------- aventura (contra robots salvajes) ---------- */
 function combateInicio_(p) {
+  if (p.modo !== 'pve') return buscarRival_(Object.assign({}, p, { nueva: 1 }));
   const s = sesion_(p.token), uid = String(s.row[U.Id]), cr = criaturas_(), mio = equipoDe_(s.row, cr);
   freno_('cbi_' + uid, 12, 60);
   if (mio.length < 3) throw new Error('Necesitas 3 criaturas en tu equipo. Ve a «Equipo» y elígelas.');
-  let rival, meta = {};
-  if (p.modo === 'pve') {
-    const n = Math.max(1, Math.min(30, parseInt(p.etapa, 10) || 1));
-    if (n > num_(s.row[U.Etapa]) + 1) throw new Error('Primero supera la etapa ' + (num_(s.row[U.Etapa]) + 1));
-    const e = CX.etapa(n);
-    rival = equipoBot_(e.eq, 'e' + n + '-');
-    meta = { modo: 'pve', etapa: n, rival: (e.jefe ? 'JEFE · ' : '') + e.zona, mult: e.mult };
-  } else {
-    const elo = num_(s.row[U.Elo]) || 1000, f = usuarios_();
-    const cands = f.rows.filter(r => String(r[U.Id]) !== uid && r[U.Equipo]).map(r => ({ r, d: Math.abs((num_(r[U.Elo]) || 1000) - elo) + Math.random() * 120 })).sort((a, b) => a.d - b.d);
-    for (let k = 0; k < Math.min(8, cands.length) && !rival; k++) {
-      const eq = equipoDe_(cands[k].r, cr);
-      if (eq.length === 3) { rival = eq; meta = { modo: 'pvp', rival: String(cands[k].r[U.Usuario]), rivalId: String(cands[k].r[U.Id]), eloRival: num_(cands[k].r[U.Elo]) || 1000, mult: 1 }; }
-    }
-    if (!rival) {
-      const base = Math.floor(Math.random() * 1e9);
-      rival = equipoBot_([0, 1, 2].map(i => CX.genesAzar(base + i, null, 0.5)), 'b');
-      meta = { modo: 'pvp', rival: 'Bot ' + NOMBRES_BOT[base % NOMBRES_BOT.length], eloRival: elo, bot: 1, mult: 1 };
-    }
-  }
-  const B = MOTOR.crear([mio, rival], { mult: [1, meta.mult || 1], nombres: [String(s.row[U.Usuario]), meta.rival] });
+  const n = Math.max(1, Math.min(30, parseInt(p.etapa, 10) || 1));
+  if (n > num_(s.row[U.Etapa]) + 1) throw new Error('Primero supera la etapa ' + (num_(s.row[U.Etapa]) + 1));
+  const e = CX.etapa(n), rival = equipoBot_(e.eq, 'e' + n + '-');
+  const meta = { modo: 'pve', etapa: n, rival: (e.jefe ? 'JEFE · ' : '') + e.zona, mult: e.mult };
+  const B = MOTOR.crear([mio, rival], { mult: [1, meta.mult], nombres: [String(s.row[U.Usuario]), meta.rival] });
   B.meta = meta; B.t = Date.now();
   guardarCombate_(uid, B);
   return { ok: true, meta, vista: MOTOR.vista(B, 0) };
 }
+
+/* ---------- arena: emparejamiento en tiempo real ----------
+   El jugador entra en la cola y el móvil pregunta cada segundo. Si aparece otro jugador conectado
+   (y no os habéis enfrentado hace poco) jugáis los dos la MISMA partida. Si pasan «arenaEspera»
+   segundos sin nadie, juega contra un bot con un nombre distinto cada vez. */
+const BOT_A = ['Turbo', 'Pixel', 'Glitch', 'Nano', 'Tuerca', 'Voltia', 'Quark', 'Diodo', 'Chispa', 'Oxido', 'Byte', 'Neon', 'Tornillo', 'Rayo', 'Ciber', 'Zeta', 'Mecha', 'Robi', 'Flux', 'Nitro', 'Vortex', 'Krono', 'Laser', 'Blitz', 'Astro', 'Dinamo', 'Ion', 'Rocket', 'Cobra', 'Drako', 'Furia', 'Lobo', 'Magma', 'Orion', 'Pulsar', 'Sigma', 'Trueno', 'Volt', 'Yeti', 'Zafiro'];
+const BOT_B = ['Max', 'Pro', 'King', 'Rex', 'Boy', 'Master', 'X', 'Zero', 'Gamer', 'Lord', 'Wolf', 'Star', 'Fox', 'Ninja', 'Crack', 'Titan', 'Storm', 'Kid', 'One', 'GG'];
+function nombreBot_(usados, cogidos) {
+  const al = a => a[Math.floor(Math.random() * a.length)];
+  for (let k = 0; k < 40; k++) {
+    const a = al(BOT_A), b = al(BOT_B), r = Math.random(), nn = Math.floor(Math.random() * 98) + 2;
+    const n = (r < .3 ? a + b : r < .55 ? a + '_' + nn : r < .75 ? (a + b).toLowerCase() + (nn % 10) : r < .9 ? a + nn : b + a).slice(0, 16);
+    if (usados.indexOf(n) < 0 && !cogidos[n.toLowerCase()]) return n;
+  }
+  return 'Robi' + Date.now() % 10000;
+}
+function histArena_(uid) { return cGet_('ah_' + uid) || { r: [], n: [] }; }
+function apuntaRival_(uid, rival, nombreBot) {
+  const h = histArena_(uid); h.r.push(rival); h.r = h.r.slice(-10);
+  if (nombreBot) { h.n.push(nombreBot); h.n = h.n.slice(-30); }
+  cPut_('ah_' + uid, h);
+}
+function ultimos_(lista, n) { return n > 0 ? lista.slice(-n) : []; }
+function puedenJugar_(a, b, n) { return ultimos_(histArena_(a).r, n).indexOf(b) < 0 && ultimos_(histArena_(b).r, n).indexOf(a) < 0; }
+const COLA_FRESCA = 3500, ABANDONO_MS = 35000;
+function buscarRival_(p) {
+  const uid = uidRapido_(p.token), cf = cfg_();
+  freno_('busca_' + uid, 60, 60);
+  return conLock_(() => {
+    const c = CacheService.getScriptCache(), ahora = Date.now();
+    // ¿ya estoy en una partida contra otro jugador? (me han emparejado o la dejé a medias)
+    const emp = c.get('emp_' + uid); if (emp) c.remove('emp_' + uid);
+    const ref = cargarCombate_(uid);
+    if (ref && ref.pvp) { const B = cGet_('pb_' + ref.pvp); if (B && !B.fin) { ping_(ref.pvp, ref.lado); return pvpSalida_(B, ref.lado); } }
+    const todos = cGet_('cola') || [], yo0 = todos.find(x => x.uid === uid);
+    const cola = todos.filter(x => x.uid !== uid && ahora - x.t < COLA_FRESCA);
+    let yo = !p.nueva && yo0 && ahora - yo0.t < COLA_FRESCA ? yo0 : null;
+    if (!yo) {
+      const s = sesion_(p.token), eq = equipoDe_(s.row, criaturas_());
+      if (eq.length < 3) throw new Error('Necesitas 3 criaturas en tu equipo. Ve a «Equipo» y elígelas.');
+      yo = { uid, nom: String(s.row[U.Usuario]), elo: num_(s.row[U.Elo]) || 1000, eq, t0: ahora };
+    }
+    yo.t = ahora;
+    // 1. otro jugador real esperando
+    const cands = cola.filter(x => puedenJugar_(uid, x.uid, cf.arenaRepetir)).sort((a, b) => Math.abs(a.elo - yo.elo) - Math.abs(b.elo - yo.elo));
+    if (cands.length) {
+      const el = cands[0], bid = nuevoId_('PV');
+      cPut_('cola', cola.filter(x => x.uid !== el.uid), 600);
+      const B = MOTOR.crear([yo.eq, el.eq], { nombres: [yo.nom, el.nom] });
+      B.meta = { modo: 'pvp', real: 1, bid, uids: [uid, el.uid], nombres: [yo.nom, el.nom], elos: [yo.elo, el.elo] };
+      B.t = ahora; B.pend = [null, null]; B.faltas = [0, 0]; B.ult = null; B.premios = [null, null];
+      B.limite = ahora + (cf.turnoSeg + 6) * 1000;   // +6 s para la presentación
+      cPut_('pb_' + bid, B);
+      guardarCombate_(uid, { pvp: bid, lado: 0 }); guardarCombate_(el.uid, { pvp: bid, lado: 1 });
+      c.put('emp_' + el.uid, bid, 300);
+      ping_(bid, 0); ping_(bid, 1);
+      apuntaRival_(uid, el.uid); apuntaRival_(el.uid, uid);
+      return pvpSalida_(B, 0);
+    }
+    // 2. nadie en el tiempo de espera: bot
+    if (ahora - yo.t0 >= cf.arenaEspera * 1000) { cPut_('cola', cola, 600); return combateBot_(yo); }
+    // 3. sigo esperando
+    cola.push(yo); cPut_('cola', cola, 600);
+    return { ok: true, esperando: 1, quedan: Math.max(0, yo.t0 + cf.arenaEspera * 1000 - ahora) };
+  });
+}
+function noBuscar_(p) {
+  const uid = uidRapido_(p.token);
+  return conLock_(() => {
+    cPut_('cola', (cGet_('cola') || []).filter(x => x.uid !== uid), 600);
+    const c = CacheService.getScriptCache(), emp = c.get('emp_' + uid);
+    if (emp) { c.remove('emp_' + uid); const ref = cargarCombate_(uid), B = cGet_('pb_' + emp); if (ref && ref.pvp === emp && B && !B.fin) { ping_(emp, ref.lado); return pvpSalida_(B, ref.lado); } }
+    return { ok: true };
+  });
+}
+function combateBot_(yo) {
+  const h = histArena_(yo.uid), cogidos = {}; usuarios_().rows.forEach(r => cogidos[String(r[U.Usuario]).toLowerCase()] = 1);
+  const nom = nombreBot_(h.n, cogidos), base = Math.floor(Math.random() * 1e9);
+  const tope = Math.max(60, num_(PropertiesService.getScriptProperties().getProperty('num')));
+  const rival = [0, 1, 2].map(i => ({ id: 'b' + i, nom: 'Criaturix #' + (1 + Math.floor(Math.random() * tope)), genes: CX.genesAzar(base + i * 7919, null, 0.4 + Math.random() * 0.35) }));
+  const meta = { modo: 'pvp', rival: nom, eloRival: Math.max(0, yo.elo + Math.round((Math.random() - 0.5) * 140)), mult: 1 };
+  const B = MOTOR.crear([yo.eq, rival], { mult: [1, 1], nombres: [yo.nom, nom] });
+  B.meta = meta; B.t = Date.now();
+  guardarCombate_(yo.uid, B);
+  apuntaRival_(yo.uid, 'bot', nom);
+  return { ok: true, meta, vista: MOTOR.vista(B, 0) };
+}
+
+/* ---------- partida entre dos jugadores reales (la misma para los dos) ---------- */
+function ping_(bid, l) { CacheService.getScriptCache().put('pp_' + bid + '_' + l, String(Date.now()), 3600); }
+function pingDe_(bid, l) { return num_(CacheService.getScriptCache().get('pp_' + bid + '_' + l)); }
+function giraRes_(r) { return r === 'gana' ? 'pierde' : r === 'pierde' ? 'gana' : r; }
+function giraEv_(ev, l) {   // los eventos se guardan desde el lado 0: al otro jugador se le dan la vuelta
+  if (!l) return ev;
+  return ev.map(e => { const o = Object.assign({}, e); if ('l' in o) o.l = 1 - o.l; if ('tl' in o) o.tl = 1 - o.tl; if (o.t === 'fin') o.r = giraRes_(o.r); return o; });
+}
+function vistaL_(B, l) { const v = MOTOR.vista(B, l); if (l === 1 && v.fin) v.fin = giraRes_(v.fin); return v; }
+function metaL_(B, l) { const m = B.meta; return { modo: 'pvp', real: 1, rival: m.nombres[1 - l], eloRival: m.elos[1 - l], mult: 1 }; }
+function pvpSalida_(B, l, ronda) {
+  const out = { ok: true, meta: metaL_(B, l), vista: vistaL_(B, l), quedan: Math.max(0, B.limite - Date.now()), enviado: !!B.pend[l], rivalListo: !!B.pend[1 - l] };
+  if (ronda != null) {
+    if (B.ult && B.ult.ronda === ronda) { out.ev = giraEv_(B.ult.ev, l); out.resuelta = 1; }
+    else if (B.fin) { out.ev = []; out.resuelta = 1; }
+    else out.esperando = 1;
+  }
+  if (B.fin) out.premio = B.premios[l];
+  return out;
+}
+function pvpPremios_(B) {
+  const m = B.meta;
+  B.premios = [0, 1].map(l => { try { return terminar_(m.uids[l], l ? giraRes_(B.fin) : B.fin, { modo: 'pvp', real: 1, rival: m.nombres[1 - l], eloRival: m.elos[1 - l] }, B.ronda); } catch (e) { return null; } });
+}
+/* resuelve la ronda si ya han elegido los dos, si se acabó el tiempo o si alguien se ha ido */
+function pvpResolver_(B, cf, bid) {
+  if (B.fin) return false;
+  const ahora = Date.now(), ambos = !!(B.pend[0] && B.pend[1]), tarde = ahora > B.limite;
+  let aband = [0, 1].filter(l => !B.pend[l] && ahora - pingDe_(bid, l) > ABANDONO_MS);
+  if (!aband.length && !ambos && !tarde) return false;
+  if (!aband.length && !ambos) {   // se acabó el tiempo: el ordenador elige por quien no lo ha hecho
+    [0, 1].forEach(l => { if (!B.pend[l]) B.faltas[l]++; });
+    aband = [0, 1].filter(l => !B.pend[l] && B.faltas[l] >= 3);
+  }
+  const r = B.ronda; let ev;
+  if (aband.length) {
+    B.fin = aband.length === 2 ? 'empate' : aband[0] === 0 ? 'pierde' : 'gana';
+    ev = aband.map(l => ({ t: 'aviso', m: '¡' + B.meta.nombres[l].toUpperCase() + ' HA ABANDONADO!' })).concat([{ t: 'fin', r: B.fin }]);
+  } else {
+    const jug = [0, 1].map(l => { const j = B.pend[l]; if (j) { try { MOTOR.comprobar(B, l, j); return j; } catch (e) {} } return MOTOR.ia(B, l, 1); });
+    ev = MOTOR.ronda(B, jug[0], jug[1]);
+  }
+  B.ult = { ronda: r, ev }; B.pend = [null, null];
+  B.limite = Date.now() + (cf.turnoSeg + Math.min(25, ev.length * 0.5) + 2) * 1000;   // + lo que tarda la animación
+  if (B.fin) pvpPremios_(B);
+  return true;
+}
+function pvpTurno_(uid, ref, p) {
+  const cf = cfg_(), r = parseInt(p.ronda, 10);
+  return conLock_(() => {
+    const B = cGet_('pb_' + ref.pvp); if (!B) throw new Error('El combate ha caducado');
+    const l = ref.lado; ping_(ref.pvp, l);
+    if (!B.fin && r === B.ronda && !B.pend[l]) {
+      const jug = p.jug || {};
+      MOTOR.comprobar(B, l, jug);
+      B.pend[l] = jug; B.faltas[l] = 0;
+      pvpResolver_(B, cf, ref.pvp);
+      cPut_('pb_' + ref.pvp, B);
+    }
+    return pvpSalida_(B, l, r);
+  });
+}
+/* el móvil pregunta cada 1-2 s: ¿ha elegido ya el rival? ¿se ha resuelto la ronda? */
+function esperar_(p) {
+  const uid = uidRapido_(p.token), ref = cargarCombate_(uid);
+  if (!ref || !ref.pvp) return { ok: true, sinCombate: 1 };
+  const cf = cfg_(), bid = ref.pvp, ahora = Date.now();
+  ping_(bid, ref.lado);
+  let B = cGet_('pb_' + bid); if (!B) return { ok: false, error: 'El combate ha caducado' };
+  const toca = !B.fin && ((B.pend[0] && B.pend[1]) || ahora > B.limite || [0, 1].some(l => ahora - pingDe_(bid, l) > ABANDONO_MS));
+  if (toca) B = conLock_(() => { const B2 = cGet_('pb_' + bid); if (B2 && pvpResolver_(B2, cf, bid)) cPut_('pb_' + bid, B2); return B2 || B; });
+  return pvpSalida_(B, ref.lado, parseInt(p.ronda, 10));
+}
+
 function combateEnCurso_(p) {
   const s = sesion_(p.token), B = cargarCombate_(String(s.row[U.Id]));
+  if (B && B.pvp) { const P = cGet_('pb_' + B.pvp); return { ok: true, combate: P && !P.fin ? pvpSalida_(P, B.lado) : null }; }
   if (!B || B.fin) return { ok: true, combate: null };
   return { ok: true, combate: { meta: B.meta, vista: MOTOR.vista(B, 0) } };
 }
 function combateTurno_(p) {
-  const s = sesion_(p.token), uid = String(s.row[U.Id]);
-  {
-    const B = cargarCombate_(uid);
-    if (!B) throw new Error('El combate ha caducado');
-    if (B.fin) return { ok: true, ev: [], vista: MOTOR.vista(B, 0), meta: B.meta, premio: B.premio || null };
-    if (parseInt(p.ronda, 10) !== B.ronda) return { ok: true, ev: [], vista: MOTOR.vista(B, 0), meta: B.meta, repetido: 1 };
-    const ev = MOTOR.ronda(B, p.jug || {}, MOTOR.ia(B, 1, B.meta.modo === 'pve' ? 0.6 + B.meta.etapa / 40 : 1));
-    let premio = null;
-    if (B.fin) premio = B.premio = terminar_(uid, B);
-    guardarCombate_(uid, B);
-    return { ok: true, ev, vista: MOTOR.vista(B, 0), meta: B.meta, premio };
-  }
+  const uid = uidRapido_(p.token), B = cargarCombate_(uid);
+  if (!B) throw new Error('El combate ha caducado');
+  if (B.pvp) return pvpTurno_(uid, B, p);
+  if (B.fin) return { ok: true, ev: [], vista: MOTOR.vista(B, 0), meta: B.meta, premio: B.premio || null };
+  if (parseInt(p.ronda, 10) !== B.ronda) return { ok: true, ev: [], vista: MOTOR.vista(B, 0), meta: B.meta, repetido: 1 };
+  const ev = MOTOR.ronda(B, p.jug || {}, MOTOR.ia(B, 1, B.meta.modo === 'pve' ? 0.6 + B.meta.etapa / 40 : 1));
+  let premio = null;
+  if (B.fin) premio = B.premio = terminar_(uid, B.fin, B.meta, B.ronda);
+  guardarCombate_(uid, B);
+  return { ok: true, ev, vista: MOTOR.vista(B, 0), meta: B.meta, premio };
 }
 function combateRendirse_(p) {
-  const s = sesion_(p.token), uid = String(s.row[U.Id]), B = cargarCombate_(uid);
+  const uid = uidRapido_(p.token), B = cargarCombate_(uid);
+  if (B && B.pvp) return conLock_(() => {
+    const P = cGet_('pb_' + B.pvp); if (!P || P.fin) return { ok: true };
+    const l = B.lado; P.fin = l ? 'gana' : 'pierde';
+    P.ult = { ronda: P.ronda, ev: [{ t: 'aviso', m: '¡' + P.meta.nombres[l].toUpperCase() + ' SE HA RENDIDO!' }, { t: 'fin', r: P.fin }] };
+    P.pend = [null, null]; pvpPremios_(P); cPut_('pb_' + B.pvp, P);
+    return { ok: true, premio: P.premios[l] };
+  });
   if (!B || B.fin) return { ok: true };
-  B.fin = 'pierde'; B.premio = terminar_(uid, B); guardarCombate_(uid, B);
+  B.fin = 'pierde'; B.premio = terminar_(uid, 'pierde', B.meta, B.ronda); guardarCombate_(uid, B);
   return { ok: true, premio: B.premio };
 }
-function terminar_(uid, B) {
+/* res = 'gana' | 'pierde' | 'empate' visto desde este jugador */
+function terminar_(uid, res, m, rondas) {
   return conLock_(() => {
-    const f = usuarios_(), i = buscar_(f.rows, U.Id, uid), row = f.rows[i], cf = cfg_(), m = B.meta;
+    const f = usuarios_(), i = buscar_(f.rows, U.Id, uid); if (i < 0) return null;
+    const row = f.rows[i], cf = cfg_();
     if (row[U.EnergiaFecha] !== hoy_()) { row[U.EnergiaFecha] = hoy_(); row[U.EnergiaUsada] = 0; }
     const conPremio = num_(row[U.EnergiaUsada]) < cf.energiaDia;
     let chips = 0, dElo = 0, nueva = false;
     if (m.modo === 'pve') {
-      if (B.fin === 'gana') {
+      if (res === 'gana') {
         if (m.etapa > num_(row[U.Etapa])) { row[U.Etapa] = m.etapa; chips = 15 + 3 * m.etapa; nueva = true; }
         else if (conPremio) chips = 4 + Math.floor(m.etapa / 2);
       }
     } else {
       const elo = num_(row[U.Elo]) || 1000, esp = 1 / (1 + Math.pow(10, ((m.eloRival || 1000) - elo) / 400));
-      const res = B.fin === 'gana' ? 1 : B.fin === 'empate' ? 0.5 : 0;
-      dElo = Math.round(32 * (res - esp)); row[U.Elo] = Math.max(0, elo + dElo);
-      if (B.fin === 'gana') { row[U.Victorias] = num_(row[U.Victorias]) + 1; if (conPremio) chips = cf.pvpGana + Math.floor(Math.max(0, elo - 1000) / 150); }
-      else if (B.fin === 'pierde') row[U.Derrotas] = num_(row[U.Derrotas]) + 1;
+      const pts = res === 'gana' ? 1 : res === 'empate' ? 0.5 : 0;
+      dElo = Math.round(32 * (pts - esp)); row[U.Elo] = Math.max(0, elo + dElo);
+      if (res === 'gana') { row[U.Victorias] = num_(row[U.Victorias]) + 1; if (conPremio) chips = cf.pvpGana + Math.floor(Math.max(0, elo - 1000) / 150); }
+      else if (res === 'pierde') row[U.Derrotas] = num_(row[U.Derrotas]) + 1;
     }
     if (chips && !nueva) row[U.EnergiaUsada] = num_(row[U.EnergiaUsada]) + 1;
     row[U.Chips] = num_(row[U.Chips]) + chips;
     guarda_(f.sh, i, row);
-    hoja_('Combates', CAB_B).appendRow([new Date(), uid, row[U.Usuario], m.modo === 'pve' ? 'Aventura ' + m.etapa : 'Arena', m.rival, B.fin, B.ronda, chips, dElo]);
+    hoja_('Combates', CAB_B).appendRow([new Date(), uid, row[U.Usuario], m.modo === 'pve' ? 'Aventura ' + m.etapa : m.real ? 'Arena (jugador)' : 'Arena', m.rival, res, rondas || '', chips, dElo]);
     CacheService.getScriptCache().remove('ranking');
-    return { resultado: B.fin, chips, elo: dElo, nuevaEtapa: nueva, sinEnergia: !conPremio && !nueva && B.fin === 'gana', perfil: perfil_(row) };
+    return { resultado: res, chips, elo: dElo, nuevaEtapa: nueva, sinEnergia: !conPremio && !nueva && res === 'gana', perfil: perfil_(row) };
   });
 }
 
