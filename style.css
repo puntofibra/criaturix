@@ -587,3 +587,14 @@ body.hitstop .rb *{animation-play-state:paused!important}
 @keyframes fxHaz{0%,100%{opacity:.35;transform:scaleY(.8)}50%{opacity:.95;transform:scaleY(1.1)}}
 .rb .fx-estrella{transform-box:fill-box;transform-origin:50% 50%;animation:fxEstrella 1.4s ease-in-out infinite}
 @keyframes fxEstrella{0%,100%{opacity:.2;transform:scale(.3) rotate(0)}50%{opacity:1;transform:scale(1) rotate(45deg)}}
+
+/* ---------- parpadeo natural (párpados sobre el ojo pintado) ---------- */
+.rb .rb-parp path{transform-box:fill-box}
+.rb .rb-parp .sup{transform:translateY(-101%);animation:parpS var(--pd,5s) var(--pdl,0s) infinite}
+.rb .rb-parp .inf{transform:translateY(101%);animation:parpI var(--pd,5s) var(--pdl,0s) infinite}
+.rb .rb-parp.doble .sup{animation-name:parpS2}.rb .rb-parp.doble .inf{animation-name:parpI2}
+@keyframes parpS{0%,91%{transform:translateY(-101%);animation-timing-function:cubic-bezier(.6,0,.9,.6)}93%,94%{transform:translateY(0);animation-timing-function:cubic-bezier(.15,.5,.35,1)}97.6%,100%{transform:translateY(-101%)}}
+@keyframes parpI{0%,91%{transform:translateY(101%);animation-timing-function:cubic-bezier(.6,0,.9,.6)}93%,94%{transform:translateY(0);animation-timing-function:cubic-bezier(.15,.5,.35,1)}97.6%,100%{transform:translateY(101%)}}
+@keyframes parpS2{0%,85%{transform:translateY(-101%);animation-timing-function:cubic-bezier(.6,0,.9,.6)}87%,87.6%{transform:translateY(0)}89.6%{transform:translateY(-75%);animation-timing-function:cubic-bezier(.6,0,.9,.6)}91.4%,92.2%{transform:translateY(0);animation-timing-function:cubic-bezier(.15,.5,.35,1)}95.6%,100%{transform:translateY(-101%)}}
+@keyframes parpI2{0%,85%{transform:translateY(101%)}87%,87.6%{transform:translateY(0)}89.6%{transform:translateY(85%)}91.4%,92.2%{transform:translateY(0)}95.6%,100%{transform:translateY(101%)}}
+.rb.quieto .rb-parp path{visibility:hidden}
