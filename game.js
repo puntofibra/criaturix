@@ -220,20 +220,33 @@ function confeti(n) {
 }
 
 /* ---------- piezas visuales reutilizables ---------- */
-const ICO_SLOT = {
-  boca: '<svg viewBox="0 0 24 24"><path d="M3 9q9-6 18 0l-2 7q-7 4-14 0z"/><path d="M7 11l1.5 2 1.5-2 1.5 2 1.5-2 1.5 2 1.5-2" stroke="#05060f" stroke-width="1.3" fill="none"/></svg>',
-  cuerno: '<svg viewBox="0 0 24 24"><path d="M6 21Q8 9 20 3q-4 9-5 18z"/></svg>',
-  espalda: '<svg viewBox="0 0 24 24"><path d="M4 18Q2 6 14 3q6 0 6 4-9 1-10 11z"/><circle cx="14" cy="8" r="2" fill="#05060f"/></svg>',
-  cola: '<svg viewBox="0 0 24 24"><path d="M20 14Q12 22 6 16Q2 11 7 7q3-2 4 1-4 1-2 5 3 4 11 1z"/></svg>',
-  ojos: '<svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="5"/><circle cx="8" cy="12" r="2.4" fill="#05060f"/><circle cx="16" cy="12" r="2.4" fill="#05060f"/></svg>',
-  antenas: '<svg viewBox="0 0 24 24"><path d="M8 21V9M16 21V9" stroke="currentColor" stroke-width="2.4"/><circle cx="8" cy="6" r="3"/><circle cx="16" cy="6" r="3"/></svg>'
+const ICO_SLOT = {   // iconos del tipo de pieza (esquina de la carta)
+  boca: '<svg viewBox="0 0 24 24"><path class="b" d="M3 8.5Q12 4 21 8.5L19.5 15Q12 20.5 4.5 15Z"/><path class="o" d="M5.5 10.2 7 13l1.6-2.6L10.2 13.4 12 10.4l1.8 3 1.6-3 1.6 2.6 1.5-2.8"/><path class="l" d="M4 9Q12 5.2 20 9"/></svg>',
+  cuerno: '<svg viewBox="0 0 24 24"><path class="b" d="M5 21.5Q5.5 11 19.5 2.5Q14.5 12 14.8 21.5Z"/><path class="o" d="M7.6 16.5Q11 15.6 14.6 16.4M8.8 12.2Q12 11.3 15.2 11.8M10.6 8.2Q13.2 7.4 16.2 7.8"/><path class="l" d="M7 20Q8 12 17.5 4.8"/></svg>',
+  espalda: '<svg viewBox="0 0 24 24"><path class="b" d="M4 21h7l-1-6H5z M13 21h7l-1-6h-5z"/><path class="f" d="M7.5 15q-3-4 0-9 1 3 2.2 3.5Q9 6 11 3q1.5 5-.5 8.5Q10 14 7.5 15z M16.5 15q-3-4 0-9 1 3 2.2 3.5Q18 6 20 3q1.5 5-.5 8.5Q19 14 16.5 15z"/></svg>',
+  cola: '<svg viewBox="0 0 24 24"><path class="b" d="M21 15.5Q14 23 7 18Q2 14 5.5 8.5Q8 5 11 7.5Q8 9 8.2 12.4Q9 16.5 14 16.4Q17.5 16.2 21 15.5Z"/><path class="f" d="M11 7.5 13.5 2.5 15.5 8.2Z"/><path class="o" d="M6.2 15.5 8.4 14M9.6 18.2 10.6 16.2M13.4 19.4 13.6 17"/></svg>',
+  ojos: '<svg viewBox="0 0 24 24"><path class="b" d="M2 12Q12 2 22 12Q12 22 2 12Z"/><circle cx="12" cy="12" r="4.2" fill="#05060f"/><circle class="f" cx="12" cy="12" r="2.4"/><circle cx="13.3" cy="10.7" r="1" fill="#fff"/></svg>',
+  antenas: '<svg viewBox="0 0 24 24"><path class="o" d="M8 22V9M16 22V9" style="stroke-width:2.2"/><circle class="f" cx="8" cy="6" r="3"/><circle class="f" cx="16" cy="6" r="3"/></svg>'
 };
+const ARTE_CORTE = { espalda: [20, 0, 420, 330] };   // recorte del cuerpo (marco 1024x907) para la espalda: los cañones
+function arteCarta(k) {
+  const c = CX.CLASES[k.clase] ? k.clase : 'cromo', v = '?v=11';
+  let img;
+  if (k.slot === 'espalda') {
+    const [x, y, w, h] = ARTE_CORTE.espalda, esc = 100 / w;   // background que enseña la zona de los cañones
+    img = `<i class="kImg corte" style="background-image:url(img/piezas/cuerpo_${c}.webp${v});background-size:${1024 * esc}% auto;background-position:${x / (1024 - w) * 100}% ${y / (907 - h) * 100}%;aspect-ratio:${w}/${h}"></i><i class="kFx"></i>`;
+  } else {
+    const f = { boca: 'cara_boca_', cuerno: 'cuerno_', cola: 'cola_', ojos: 'cara_ojo_' }[k.slot] || 'cuerno_';
+    img = `<img class="kImg" src="img/piezas/${f}${c}.webp${v}" alt="" loading="lazy">`;
+  }
+  return `<div class="kArte s-${k.slot}">${img}</div>`;
+}
 function cartaHTML(k, o) {
   o = o || {};
   const txt = CX.textoCarta(k);
   return `<button class="carta ${o.cls || ''}" style="--cc:${colClase(k.clase)}" ${o.attr || ''}>
+    ${arteCarta(k)}
     <span class="kCoste">${k.c}</span><span class="kSlot">${ICO_SLOT[k.slot] || ''}</span>
-    ${o.genes ? `<div class="kCara">${ROBOT.svg(o.genes, { cls: 'quieto' })}</div>` : '<div style="height:26px"></div>'}
     <div class="kNom">${esc(k.n)}</div>
     <div class="kVal">${k.a ? `<span class="a">⚔${k.a}</span>` : ''}${k.e ? `<span class="e">⛨${k.e}</span>` : ''}</div>
     <div class="kTxt">${esc(txt)}</div></button>`;
@@ -831,7 +844,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 19;   // subir este número (y version.json) en cada actualización
+const VERSION = 20;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();
