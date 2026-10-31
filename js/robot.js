@@ -172,6 +172,7 @@ var ROBOT = (function () {
   }
   /* =========== CRIATURA: cuerpo con cara + ojo/boca de otra clase + efecto de espalda =========== */
   var FR = { w: 1024, h: 907 };                                   // marco común de los 6 cuerpos
+  var COLA_FRENTE = { cuantico: 1 };   // colas con una parte que va por delante de la pata
   var COLA = {"plasma":[-101,32,214,614],"voltio":[-99,-1,194,608],"bio":[-113,-26,219,671],"cromo":[-113,28,232,576],"cuantico":[-100,447,490,480],"sombra":[-112,-108,295,725]};   // colas nuevas en el marco común (x, y, ancho, alto)
   var CARA = { ojo: [587, 133, 307, 307], boca: [624, 396, 363, 305] };
   var TUBOS = {   // boca de los 3 tubos de cada cuerpo (x, y en el marco, ángulo: 0 = arriba)
@@ -217,7 +218,7 @@ var ROBOT = (function () {
     var BW = 160, s = BW / FR.w, BH = FR.h * s, X0 = 50, Y0 = 200 - BH;
     var P = function (x, y) { return [X0 + x * s, Y0 + y * s]; };
     var tinte = TINTE[genes.col || 0];
-    var pieza = function (k, box) { return '<image href="' + BASE + k + '.webp?v=11" x="' + (X0 + box[0] * s).toFixed(1) + '" y="' + (Y0 + box[1] * s).toFixed(1) + '" width="' + (box[2] * s).toFixed(1) + '" height="' + (box[3] * s).toFixed(1) + '"/>'; };
+    var pieza = function (k, box) { return '<image href="' + BASE + k + '.webp?v=14" x="' + (X0 + box[0] * s).toFixed(1) + '" y="' + (Y0 + box[1] * s).toFixed(1) + '" width="' + (box[2] * s).toFixed(1) + '" height="' + (box[3] * s).toFixed(1) + '"/>'; };
     var ce = CX.CLASES[pp.espalda.c] ? pp.espalda.c : cls;
     var efectos = (TUBOS[cls] || TUBOS.plasma).map(function (t, i) {
       var p = P(t[0], t[1]);
@@ -230,11 +231,12 @@ var ROBOT = (function () {
     return '<svg class="rb ' + (opts.cls || '') + '" data-fx="' + ce + '" viewBox="0 0 240 220" overflow="visible" xmlns="http://www.w3.org/2000/svg">' + defs +
       '<ellipse class="rb-sombra" cx="122" cy="203" rx="70" ry="7" fill="' + K.col + '" opacity=".25"/>' +
       '<g class="rb-cuerpo">' +
-      '<g class="rb-cola">' + pieza('cola_' + (COLA[pp.cola.c] ? pp.cola.c : cls), COLA[pp.cola.c] || COLA[cls]) + '</g>' +
+      '<g class="rb-cola' + (COLA_FRENTE[pp.cola.c] ? ' fija' : '') + '">' + pieza('cola_' + (COLA[pp.cola.c] ? pp.cola.c : cls), COLA[pp.cola.c] || COLA[cls]) + '</g>' +
       '<g class="rb-fx">' + efectos + '</g>' +
       '<g class="rb-ant">' + img(nom('antenas', pp.antenas), an[0], an[1], 48, 66, .5, 1) + '</g>' +
       '<g class="rb-cuerno">' + img(nom('cuerno', pp.cuerno), cu[0], cu[1], 40, 52, .5, 1) + '</g>' +
-      '<image href="' + BASE + 'cuerpo_' + cls + '.webp?v=11" x="' + X0 + '" y="' + Y0.toFixed(1) + '" width="' + BW + '" height="' + BH.toFixed(1) + '"' + (tinte ? ' style="filter:' + tinte + '"' : '') + '/>' +
+      '<image href="' + BASE + 'cuerpo_' + cls + '.webp?v=14" x="' + X0 + '" y="' + Y0.toFixed(1) + '" width="' + BW + '" height="' + BH.toFixed(1) + '"' + (tinte ? ' style="filter:' + tinte + '"' : '') + '/>' +
+      (COLA_FRENTE[pp.cola.c] ? pieza('cola_' + pp.cola.c + '_frente', COLA[pp.cola.c]) : '') +
       (pp.ojos.c !== cls && CX.CLASES[pp.ojos.c] ? pieza('cara_ojo_' + pp.ojos.c, CARA.ojo) : '') +
       (pp.boca.c !== cls && CX.CLASES[pp.boca.c] ? pieza('cara_boca_' + pp.boca.c, CARA.boca) : '') +
       '</g></svg>';
