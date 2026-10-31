@@ -1,7 +1,7 @@
 /* =========================================================
    CRIATURIX · panel de administración
    Acceso: mantener ENTRAR 3 s, 10 toques al logo o botón PANEL ADMIN
-   Llave NFC (Android) · QR para el ordenador · Google Authenticator
+   Llave NFC (Android) · QR para el ordenador
    ========================================================= */
 'use strict';
 const Admin = (() => {
@@ -16,13 +16,7 @@ const Admin = (() => {
       <h2 style="padding:0" id="aTit">${modoQr ? 'Autorizar ordenador' : 'Acceso administrador'}</h2><p class="msg" id="aMsg"></p>
       <div id="aQr" class="oculto"><div id="admQrImg"></div><p class="nota" id="aQrT"></p></div>
       <button class="btn cian oculto" id="aNfc">ESCANEAR LLAVE</button>
-      <div class="sep">o con Google Authenticator</div>
-      <form id="aTotp" style="display:flex;gap:8px;max-width:320px;margin:0 auto"><input id="aCod" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" style="flex:1;padding:12px;border-radius:12px;background:rgba(0,0,0,.45);border:1px solid rgba(0,229,255,.3);font-family:Orbitron;font-size:20px;letter-spacing:.3em;text-align:center"><button class="btn" type="submit">ENTRAR</button></form>
       </div>`, { alCerrar: parar });
-    $('#aTotp', m).onsubmit = e => {
-      e.preventDefault(); const b = $('button', e.target); ocupado(b, true);
-      api('admin_totp', { codigo: $('#aCod').value }).then(d => { ocupado(b, false); if (!d.ok) return msgA(d.error, 'err'); ok(d.admin, false); });
-    };
     $('#aNfc', m).onclick = () => escanear(false);
     if (hayNfc) { $('#aNfc', m).classList.remove('oculto'); msgA(modoQr ? 'Pasa tu llave para dar acceso al ordenador' : 'Acerca tu llave NFC a la parte trasera del móvil'); escanear(true); }
     else if (!modoQr) mostrarQr();
@@ -90,7 +84,7 @@ const Admin = (() => {
   /* ---------------- panel ---------------- */
   function panel() {
     const m = modal(`<div class="adm"><div class="tit" style="margin-top:0"><h1 style="font-size:20px">⚙ ADMINISTRACIÓN</h1></div>
-      <div class="pestanas" id="aPest">${[['pedidos', 'PEDIDOS'], ['resumen', 'RESUMEN'], ['crear', 'CREAR'], ['tienda', 'TIENDA'], ['jugadores', 'JUGADORES'], ['ajustes', 'AJUSTES'], ['seguridad', 'SEGURIDAD']].map(([k, n]) => `<button data-k="${k}" class="${pest === k ? 'on' : ''}">${n}<span id="b_${k}"></span></button>`).join('')}</div>
+      <div class="pestanas" id="aPest">${[['pedidos', 'PEDIDOS'], ['resumen', 'RESUMEN'], ['crear', 'CREAR'], ['tienda', 'TIENDA'], ['jugadores', 'JUGADORES'], ['ajustes', 'AJUSTES']].map(([k, n]) => `<button data-k="${k}" class="${pest === k ? 'on' : ''}">${n}<span id="b_${k}"></span></button>`).join('')}</div>
       <div id="aCont"></div></div>`, { cls: 'ancha', alCerrar: () => { if (VISTA === 'inicio' || VISTA === 'mercado') ir(VISTA); } });
     $$('#aPest button', m).forEach(b => b.onclick = () => { pest = b.dataset.k; Son.click(); $$('#aPest button').forEach(x => x.classList.toggle('on', x === b)); pinta(); });
     pinta();

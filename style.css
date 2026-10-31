@@ -726,3 +726,7 @@ body.hitstop .rb *{animation-play-state:paused!important}
 .crPack.top{border-color:#ffd23f;background:linear-gradient(170deg,rgba(255,210,63,.2),rgba(10,15,28,.95) 65%)}
 .crEtq{position:absolute;top:0;left:0;right:0;font-family:Orbitron;font-weight:900;font-size:8.5px;letter-spacing:.12em;padding:3px 0;background:#ff2bd6;color:#fff}
 .crEtq.oro{background:#ffd23f;color:#2a1a00}
+
+/* barra superior: logo CRIATURIX */
+.marca .mCx{height:44px;margin:-6px 0;width:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6)) drop-shadow(0 0 6px rgba(177,75,255,.35))}
+@media (max-width:600px){.marca .mCx{display:none}}
