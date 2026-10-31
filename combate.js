@@ -179,7 +179,7 @@ const Combate = (() => {
     else {
       if (sel[k.p].length >= 4) return toast('Máximo 4 cartas por criatura');
       if (k.c > V.yo.en - energiaUsada()) { toast('No tienes energía suficiente'); Son.falla(); return; }
-      sel[k.p].push(u); Son.carta(); vib(10);
+      sel[k.p].push(u); Son.carta(sel[0].length + sel[1].length + sel[2].length - 1); vib(10);
     }
     pintaMano(); pintaPilas();
   }
@@ -228,7 +228,7 @@ const Combate = (() => {
   function clase(el, c, ms) { if (!el) return; el.classList.remove(c); void el.offsetWidth; el.classList.add(c); setTimeout(() => el.classList.remove(c), ms); }
   const EST_COL = { corrosion: '#d38bff', aturdido: '#ffe03a', miedo: '#ff4fd8', debilitado: '#9fb6c4', lento: '#9fb6c4', expuesto: '#ffb02e', potenciado: '#ff6b5a', veloz: '#19ff6a' };
   /* la carta sale de la mano (o de arriba si es del rival) y vuela hasta su criatura */
-  function lanzaCarta(el, k, l) {
+  function lanzaCarta(el, k, l, n) {
     const campo = $('#campo'); if (!el || !campo) return;
     const B = centro(el), Wc = campo.clientWidth, Hc = campo.clientHeight, A = { x: Wc / 2 + (Math.random() - 0.5) * 60, y: l ? -50 : Hc + 40 };
     const d = document.createElement('div'); d.className = 'cCast'; d.style.setProperty('--cc', colClase(k.clase));
@@ -237,7 +237,7 @@ const Combate = (() => {
     const dur = 340 / vel, giro = (Math.random() - 0.5) * 30;
     d.animate([{ transform: `translate(-50%,-50%) scale(.6) rotate(${giro}deg)`, opacity: 0 }, { opacity: 1, offset: 0.2 },
       { transform: `translate(calc(-50% + ${B.x - A.x}px),calc(-50% + ${B.y - 40 - A.y}px)) scale(1.05) rotate(0deg)`, opacity: 1 }], { duration: dur, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'forwards' });
-    Son.lanza();
+    Son.lanza(n);
     setTimeout(() => { FX.onda({ x: B.x, y: B.y - 40 }, colClase(k.clase), 46); d.animate([{ opacity: 1, filter: 'brightness(1)' }, { opacity: 0, filter: 'brightness(3)', transform: `translate(calc(-50% + ${B.x - A.x}px),calc(-50% + ${B.y - 40 - A.y}px)) scale(1.5)` }], { duration: 260, fill: 'forwards' }); }, dur);
     setTimeout(() => d.remove(), dur + 300);
   }
@@ -254,7 +254,7 @@ const Combate = (() => {
         case 'juega': {
           const el = lu(e.l, e.p); if (!el) break;
           el.classList.add('activo');
-          for (const k of e.k) { lanzaCarta(el, k, e.l); await T(200); }
+          for (let j = 0; j < e.k.length; j++) { lanzaCarta(el, e.k[j], e.l, j); await T(200); }
           await T(260); el.classList.remove('activo'); break;
         }
         case 'esc': { const el = lu(e.l, e.p); setVida(e.l, e.p, null, e.esc); if (el) FX.escudo(centro(el)); flot(el, '+' + e.v + ' ⛨', 'esc'); Son.escudo(); await T(240); break; }
@@ -314,23 +314,73 @@ const Combate = (() => {
     const campo = $('#campo'); if (!campo) return;
     const d = document.createElement('div'); d.className = 'cRonda'; d.innerHTML = `<small>RONDA</small><b>${n}</b>`; campo.appendChild(d); Son.ronda(); setTimeout(() => d.remove(), 1300);
   }
+  /* ---------- final del combate: pantalla de victoria / derrota ---------- */
   function fin(pr) {
-    const gana = pr.resultado === 'gana', emp = pr.resultado === 'empate';
+    const gana = pr.resultado === 'gana', emp = pr.resultado === 'empate', tipo = gana ? 'gana' : emp ? 'empate' : 'pierde';
     if (pr.perfil) aplicaPerfil(pr.perfil);
-    if (gana) { Son.gana(); confeti(90); banner('¡VICTORIA!', S.meta.modo === 'pve' ? 'ETAPA ' + S.meta.etapa : 'ARENA', '#19ff6a'); }
-    else { Son.pierde(); banner(emp ? 'EMPATE' : 'DERROTA', '', emp ? '#ffd23f' : '#ff2b4e'); }
-    setTimeout(() => {
-      const sig = S.meta.modo === 'pve' && gana && S.meta.etapa < 30;
-      const m = modal(`<div class="resultado"><h2 style="color:${gana ? 'var(--v)' : emp ? 'var(--o)' : 'var(--r)'}">${gana ? '¡VICTORIA!' : emp ? 'EMPATE' : 'DERROTA'}</h2>
-        <div class="rivales">${S.vista.yo.cr.map(c => ROBOT.svg(c.genes, { cls: c.vivo ? '' : 'quieto' })).join('')}</div>
-        <div class="premios"><div>+${pr.chips}<small>CHIPS</small></div>${S.meta.modo === 'pvp' ? `<div style="color:${pr.elo >= 0 ? 'var(--v)' : 'var(--r)'}">${pr.elo >= 0 ? '+' : ''}${pr.elo}<small>PUNTOS ARENA</small></div>` : ''}</div>
-        ${pr.nuevaEtapa ? '<p class="nota" style="color:var(--v)">¡Nueva etapa superada!</p>' : ''}${pr.sinEnergia ? '<p class="nota">Has gastado tus combates con premio de hoy. Mañana más.</p>' : ''}
-        <div class="acciones" style="justify-content:center">${sig ? '<button class="btn grande" id="rSig">SIGUIENTE ETAPA</button>' : ''}<button class="btn ${sig ? 'sec' : 'grande'}" id="rOtra">${S.meta.modo === 'pve' ? 'REPETIR' : 'OTRO RIVAL'}</button><button class="btn sec" id="rVolver">VOLVER</button></div></div>`, { alCerrar: () => { if (VISTA === 'combate') { S = null; ir(volverA()); } } });
-      const modo = S.meta.modo, et = S.meta.etapa;
-      if (sig) $('#rSig', m).onclick = e => { ocupado(e.target, true); alCerrarModal = null; empezar({ modo: 'pve', etapa: et + 1 }); };
-      $('#rOtra', m).onclick = e => { ocupado(e.target, true); alCerrarModal = null; empezar(modo === 'pve' ? { modo, etapa: et } : { modo }); };
-      $('#rVolver', m).onclick = () => cerrarModal();
-    }, 1600);
+    Son.modo('');
+    const vista = $('.vista.combate'); if (!vista) return;
+    const sig = S.meta.modo === 'pve' && gana && S.meta.etapa < 30, modo = S.meta.modo, et = S.meta.etapa;
+    const titulo = gana ? 'VICTORIA' : emp ? 'EMPATE' : 'DERROTA';
+    const sub = modo === 'pve' ? (pr.nuevaEtapa ? '¡ETAPA ' + et + ' SUPERADA!' : 'ETAPA ' + et) : 'ARENA · contra ' + S.vista.el.nombre;
+    const o = document.createElement('div'); o.className = 'finCx ' + tipo;
+    o.innerHTML = `<canvas class="fcFx"></canvas><div class="fcRayos"></div><div class="fcAro"></div>
+      <div class="fcCaja">
+        <div class="fcTit"><small>${esc(sub)}</small><h2 data-t="${titulo}">${titulo}</h2><i class="fcBrillo"></i></div>
+        <div class="fcEq">${S.vista.yo.cr.map((c, i) => `<div class="fcCr ${c.vivo ? '' : 'caido'}" style="--d:${0.9 + i * 0.12}s;--cc:${colClase(c.genes.c)}">${ROBOT.svg(c.genes, { cls: c.vivo ? '' : 'quieto' })}</div>`).join('')}</div>
+        <div class="fcPremios">
+          <div class="fcPr chips"><i class="ic-chip"></i><b data-n="${pr.chips || 0}">0</b><small>CHIPS</small></div>
+          ${modo === 'pvp' ? `<div class="fcPr elo ${pr.elo >= 0 ? 'mas' : 'menos'}"><span>${pr.elo >= 0 ? '▲' : '▼'}</span><b data-n="${Math.abs(pr.elo || 0)}" data-s="${pr.elo >= 0 ? '+' : '-'}">0</b><small>PUNTOS ARENA</small></div>` : ''}
+        </div>
+        ${pr.sinEnergia ? '<p class="fcNota">Has gastado tus combates con premio de hoy. Mañana más.</p>' : ''}
+        <div class="fcBtns">${sig ? '<button class="btn grande" id="rSig">SIGUIENTE ETAPA ›</button>' : ''}<button class="btn ${sig ? 'sec' : 'grande'}" id="rOtra">${modo === 'pve' ? 'REPETIR' : 'OTRO RIVAL'}</button><button class="btn sec" id="rVolver">VOLVER</button></div>
+      </div>`;
+    vista.appendChild(o);
+    requestAnimationFrame(() => o.classList.add('on'));
+    if (gana) { Son.victoria(); vib([40, 60, 40, 60, 160]); } else if (emp) { Son.estado(); } else { Son.derrota(); vib([120, 60, 200]); }
+    setTimeout(() => { FX.temblor(gana ? 0.6 : 0.4); FX.destello(gana ? '#ffe9a0' : emp ? '#ffd23f' : '#ff2b4e', 0.5); }, 420);
+    particulasFin($('.fcFx', o), tipo);
+    // contadores
+    setTimeout(() => $$('.fcPr b', o).forEach(b => {
+      const n = +b.dataset.n, s0 = b.dataset.s || (b.closest('.chips') ? '+' : ''), t0 = performance.now(), dur = Math.min(1400, 300 + n * 25);
+      if (!n) { b.textContent = s0 === '-' ? '0' : (b.closest('.chips') ? '+0' : '0'); return; }
+      (function paso(now) { const k = Math.min(1, (now - t0) / dur), v = Math.round(n * (1 - Math.pow(1 - k, 3))); b.textContent = s0 + v; if (Math.random() < 0.5) Son.cuenta(); if (k < 1 && b.isConnected) requestAnimationFrame(paso); else { b.parentNode.classList.add('fin'); if (gana) Son.moneda(); } })(t0);
+    }), 1500);
+    const salir = destino => { o.remove(); if (destino) destino(); };
+    if (sig) $('#rSig', o).onclick = e => { ocupado(e.target, true); salir(() => empezar({ modo: 'pve', etapa: et + 1 })); };
+    $('#rOtra', o).onclick = e => { ocupado(e.target, true); salir(() => empezar(modo === 'pve' ? { modo, etapa: et } : { modo })); };
+    $('#rVolver', o).onclick = () => salir(() => { if (VISTA === 'combate') { const v = volverA(); S = null; ir(v); } });
+  }
+  /* chispas doradas / ascuas / fuegos artificiales en canvas */
+  function particulasFin(cv, tipo) {
+    const g = cv.getContext('2d'), dpr = Math.min(2, devicePixelRatio || 1), P = [];
+    const col = tipo === 'gana' ? ['#fff3b0', '#ffd23f', '#ffb02e', '#19ff6a', '#00e5ff'] : tipo === 'empate' ? ['#fff3b0', '#ffd23f', '#cfe0f0'] : ['#ff2b4e', '#ff6b5a', '#7a2030', '#3a1a2a'];
+    let W, H, t0 = performance.now(), ult = t0;
+    const tam = () => { W = cv.clientWidth; H = cv.clientHeight; cv.width = W * dpr; cv.height = H * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); }; tam();
+    const R = (a, b) => a + Math.random() * (b - a);
+    const explota = (x, y, n, v) => { for (let i = 0; i < n; i++) { const an = R(0, 6.283), sp = R(v * 0.3, v); P.push({ x, y, vx: Math.cos(an) * sp, vy: Math.sin(an) * sp, g: 260, dr: 0.985, v: R(0.9, 1.8), t: 0, c: col[i % col.length], r: R(1.2, 2.8), cola: 1 }); } };
+    if (tipo === 'gana') { setTimeout(() => explota(W / 2, H * 0.32, 160, 620), 380); [700, 1150, 1600, 2100, 2700].forEach((ms, i) => setTimeout(() => explota(R(W * 0.15, W * 0.85), R(H * 0.12, H * 0.4), 70, 380), ms)); }
+    else if (tipo === 'empate') setTimeout(() => explota(W / 2, H * 0.32, 80, 360), 380);
+    (function frame(now) {
+      if (!cv.isConnected) return;
+      const dt = Math.min(0.05, (now - ult) / 1000); ult = now;
+      if (cv.clientWidth !== W) tam();
+      // ascuas que suben continuamente (en la derrota caen como ceniza)
+      if (P.length < 260 && Math.random() < 0.5) P.push(tipo === 'pierde'
+        ? { x: R(0, W), y: -10, vx: R(-15, 15), vy: R(20, 60), g: 0, dr: 1, v: R(3, 6), t: 0, c: col[Math.floor(R(0, col.length))], r: R(1, 2.4) }
+        : { x: R(0, W), y: H + 10, vx: R(-20, 20), vy: R(-90, -40), g: 0, dr: 1, v: R(3, 6), t: 0, c: col[Math.floor(R(0, col.length))], r: R(1, 2.6) });
+      g.clearRect(0, 0, W, H); g.globalCompositeOperation = 'lighter';
+      for (let i = P.length - 1; i >= 0; i--) {
+        const p = P[i]; p.t += dt; if (p.t > p.v) { P.splice(i, 1); continue; }
+        p.vx *= p.dr; p.vy = p.vy * p.dr + p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+        const a = Math.min(1, (p.v - p.t) / 0.5) * (p.cola ? 1 : 0.7);
+        if (p.cola) { g.strokeStyle = p.c; g.globalAlpha = a; g.lineWidth = p.r; g.lineCap = 'round'; g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - p.vx * 0.04, p.y - p.vy * 0.04); g.stroke(); }
+        const gr = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 3); gr.addColorStop(0, '#fff'); gr.addColorStop(0.3, p.c); gr.addColorStop(1, 'rgba(0,0,0,0)');
+        g.globalAlpha = a; g.fillStyle = gr; g.beginPath(); g.arc(p.x, p.y, p.r * 3, 0, 6.283); g.fill();
+      }
+      g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+      requestAnimationFrame(frame);
+    })(t0);
   }
   function volverA() { return S && S.meta.modo === 'pvp' ? 'arena' : 'aventura'; }
   async function rendirse() {

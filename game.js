@@ -38,7 +38,7 @@ const Son = (() => {
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     ac = new AC(); master = ac.createGain(); master.gain.value = on ? 0.8 : 0;
     const comp = ac.createDynamicsCompressor(); comp.threshold.value = -16; master.connect(comp); comp.connect(ac.destination);
-    mus = ac.createGain(); mus.gain.value = 0.16; const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800; mus.connect(lp); lp.connect(master);
+    mus = ac.createGain(); mus.gain.value = modo === 'batalla' ? 0.3 : 0.16; const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800; mus.connect(lp); lp.connect(master);
     prox = ac.currentTime + 0.1; musT = setInterval(musica, 30);
   }
   function tono(f, d, tipo, vol, slide, delay, dest) {
@@ -54,18 +54,65 @@ const Son = (() => {
     f.frequency.setValueAtTime(f1, t); f.frequency.exponentialRampToValueAtTime(f2, t + d);
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); s.connect(f); f.connect(g); g.connect(master); s.start(t);
   }
-  // música ambiente suave (arpegio synthwave)
+  // música: 'menu' = arpegio synthwave suave · 'batalla' = tema de combate · '' = silencio
   const acordes = [[57, 60, 64, 69], [53, 57, 60, 65], [48, 55, 60, 64], [55, 59, 62, 67]];
   const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+  let modo = 'menu', ruidoBuf = null, musVol = 0.16;
+  function nBuf() { if (ruidoBuf) return ruidoBuf; const n = ac.sampleRate, b = ac.createBuffer(1, n, ac.sampleRate), x = b.getChannelData(0); for (let i = 0; i < n; i++) x[i] = Math.random() * 2 - 1; return (ruidoBuf = b); }
+  // nota con filtro y desafinado (para bajo, pads y metales); t = tiempo absoluto
+  function voz(f, t, d, o) {
+    o = o || {}; const g = ac.createGain(), fl = ac.createBiquadFilter(); fl.type = o.ft || 'lowpass'; fl.Q.value = o.q || 1;
+    const f0 = o.f0 || 2400, f1 = o.f1 || f0; fl.frequency.setValueAtTime(f0, t); fl.frequency.exponentialRampToValueAtTime(Math.max(60, f1), t + d);
+    const at = o.at || 0.008, v = o.vol || 0.1;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + at); g.gain.setValueAtTime(v, t + Math.max(at, d * (o.sus || 0.1))); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    (o.det || [0]).forEach(dt => { const os = ac.createOscillator(); os.type = o.tipo || 'sawtooth'; os.frequency.setValueAtTime(f, t); os.detune.value = dt; if (o.slide) os.frequency.exponentialRampToValueAtTime(f * o.slide, t + d); os.connect(fl); os.start(t); os.stop(t + d + 0.05); });
+    fl.connect(g); g.connect(o.dest || master);
+  }
+  function golpeRuido(t, d, vol, ft, f, dest, q) {
+    const s = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = nBuf(); fl.type = ft; fl.frequency.value = f; fl.Q.value = q || 0.8;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); s.connect(fl); fl.connect(g); g.connect(dest || master); s.start(t, Math.random() * 0.5, d + 0.05);
+  }
+  function bombo(t, dest, v) { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(155, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.22); g.gain.setValueAtTime(v || 0.9, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.35); }
+  // tema de batalla: La menor, Am · F · C · G, 128 BPM
+  const BAT = { bpm: 128, acordes: [[45, 57, 60, 64], [41, 57, 60, 65], [48, 55, 60, 64], [43, 55, 59, 62]],
+    melA: [76, -1, 74, 76, -1, 72, 74, -1, 72, -1, 69, -1, 71, 72, 74, -1], melB: [77, -1, 76, 74, -1, 72, -1, 74, 76, -1, 79, -1, 76, -1, 74, -1] };
+  function pasoBatalla(t, i) {
+    const bar = Math.floor(i / 16) % 4, st = i % 16, ch = BAT.acordes[bar], sec = Math.floor(i / 64) % 4, d16 = 60 / BAT.bpm / 4;
+    const intro = Math.floor(i / 16) < 2;
+    if (!intro || st % 8 === 0) { if (st % 4 === 0) bombo(t, mus, 0.85); }
+    if (!intro && (st === 4 || st === 12)) { golpeRuido(t, 0.18, 0.5, 'bandpass', 1900, mus, 0.7); voz(190, t, 0.12, { tipo: 'triangle', vol: 0.12, f0: 3000, slide: 0.6, dest: mus }); }
+    if (st % 2 === 0 || sec >= 1) golpeRuido(t, st % 4 === 2 ? 0.07 : 0.035, st % 4 === 2 ? 0.22 : 0.09, 'highpass', 8500, mus);
+    if (st === 14 && bar === 3) golpeRuido(t, 0.3, 0.25, 'highpass', 5000, mus);   // platillo antes de volver a empezar
+    // bajo: corcheas con octava
+    if (st % 2 === 0) { const n = ch[0] + (st % 8 === 6 ? 12 : 0); voz(mtof(n), t, d16 * 1.8, { tipo: 'sawtooth', vol: 0.2, f0: 900, f1: 180, q: 6, det: [-6, 6], dest: mus }); }
+    // pad al empezar cada compás
+    if (st === 0) ch.slice(1).forEach(n => voz(mtof(n), t, d16 * 16, { tipo: 'sawtooth', vol: 0.028, f0: 600, f1: 1500, at: 0.3, sus: 0.8, det: [-12, 0, 12], dest: mus }));
+    // arpegio de 16avas desde la segunda vuelta
+    if (sec >= 1 && !intro) { const n = ch[1 + (st % 3)] + 12; voz(mtof(n), t, d16 * 0.9, { tipo: 'square', vol: 0.026, f0: 3200, f1: 900, dest: mus }); }
+    // melodía heroica en vueltas alternas
+    if (sec % 2 === 1 || sec === 2) { const m = (bar % 2 ? BAT.melB : BAT.melA)[st]; if (m > 0) voz(mtof(m), t, d16 * 2.2, { tipo: 'sawtooth', vol: 0.05, f0: 2600, f1: 1400, det: [-8, 8], dest: mus }); }
+  }
   function musica() {
-    if (!ac || !on || !load('mus', true)) { if (ac) prox = ac.currentTime + 0.1; return; }
-    while (prox < ac.currentTime + 0.12) {
-      const ac4 = acordes[Math.floor(paso / 16) % 4], n = ac4[paso % 4] + (paso % 8 >= 4 ? 12 : 0);
-      tono(mtof(n), 0.22, 'triangle', 0.05, 0, prox - ac.currentTime, mus);
-      if (paso % 16 === 0) tono(mtof(ac4[0] - 24), 1.6, 'sawtooth', 0.035, 0, prox - ac.currentTime, mus);
-      paso++; prox += 0.15;
+    if (!ac || !on || !load('mus', true) || !modo) { if (ac) prox = ac.currentTime + 0.1; return; }
+    const bat = modo === 'batalla', dur = bat ? 60 / BAT.bpm / 4 : 0.15;
+    while (prox < ac.currentTime + 0.15) {
+      if (bat) pasoBatalla(prox, paso);
+      else {
+        const ac4 = acordes[Math.floor(paso / 16) % 4], n = ac4[paso % 4] + (paso % 8 >= 4 ? 12 : 0);
+        tono(mtof(n), 0.22, 'triangle', 0.05, 0, prox - ac.currentTime, mus);
+        if (paso % 16 === 0) tono(mtof(ac4[0] - 24), 1.6, 'sawtooth', 0.035, 0, prox - ac.currentTime, mus);
+      }
+      paso++; prox += dur;
     }
   }
+  function ponModo(m) {
+    if (m === modo) return; modo = m; paso = 0;
+    if (!ac) return;
+    const v = m === 'batalla' ? 0.3 : 0.16, t = ac.currentTime;
+    mus.gain.cancelScheduledValues(t); mus.gain.setValueAtTime(0.0001, t); mus.gain.exponentialRampToValueAtTime(v, t + 0.6); prox = t + 0.08;
+  }
+  // notas de la escala (La menor pentatónica) para que las cartas suenen con la música
+  const PENTA = [69, 72, 74, 76, 79, 81, 84, 86, 88, 91];
   let pausadoFondo = false;
   function fondo(oculto) {   // pantalla apagada / otra app: se calla la música
     if (!ac) return;
@@ -79,8 +126,13 @@ const Son = (() => {
     init, get on() { return on; }, callar() { if (ac) { pausadoFondo = false; ac.suspend().catch(() => {}); } },
     alternar() { on = !on; store('son', on); if (master) master.gain.value = on ? 0.8 : 0; return on; },
     click() { tono(880, 0.06, 'square', 0.06); },
-    carta() { tono(660, 0.08, 'triangle', 0.12, 1.5); },
-    quita() { tono(520, 0.08, 'triangle', 0.1, 0.6); },
+    modo: ponModo,
+    carta(n) {   // elegir carta: nota de la escala que sube con cada carta elegida + chasquido
+      if (!ac) return; const t = ac.currentTime, k = Math.max(0, Math.min(PENTA.length - 1, n || 0)), f = mtof(PENTA[k]);
+      golpeRuido(t, 0.05, 0.18, 'highpass', 4500);
+      voz(f, t, 0.28, { tipo: 'triangle', vol: 0.16, f0: 5000, f1: 1800 }); voz(f * 2, t + 0.012, 0.16, { tipo: 'sine', vol: 0.06 });
+    },
+    quita() { if (!ac) return; const t = ac.currentTime; voz(mtof(64), t, 0.16, { tipo: 'triangle', vol: 0.1, f0: 2000, slide: 0.7 }); golpeRuido(t, 0.06, 0.08, 'lowpass', 1500); },
     golpe(fuerte) { ruido(0.18, fuerte ? 0.5 : 0.32, 3000, 200); tono(fuerte ? 90 : 140, 0.22, 'sawtooth', 0.2, 0.4); },
     crit() { ruido(0.3, 0.5, 6000, 300); tono(220, 0.3, 'square', 0.18, 0.3); tono(1200, 0.2, 'sine', 0.12, 2, 0.05); },
     escudo() { tono(400, 0.25, 'sine', 0.14, 2.2); tono(800, 0.2, 'sine', 0.08, 1.6, 0.05); },
@@ -105,7 +157,27 @@ const Son = (() => {
     },
     impacto(fuerte, crit) { ruido(crit ? 0.45 : 0.22, crit ? 0.7 : fuerte ? 0.55 : 0.4, crit ? 5000 : 2600, 120); tono(crit ? 70 : fuerte ? 85 : 120, crit ? 0.4 : 0.22, 'sine', 0.45, 0.35); if (crit) tono(1400, 0.25, 'square', 0.08, 0.4, 0.04); },
     ko() { ruido(1.1, 0.6, 3000, 60); tono(60, 0.9, 'sine', 0.5, 0.4); tono(400, 0.6, 'sawtooth', 0.12, 0.1, 0.05); },
-    lanza() { ruido(0.16, 0.18, 1200, 6000); tono(500, 0.12, 'triangle', 0.08, 2); },
+    lanza(n) {   // carta que sale volando: barrido de aire + campanada afinada
+      if (!ac) return; const t = ac.currentTime, f = mtof(PENTA[Math.min(PENTA.length - 1, 2 + (n || 0))]);
+      const s0 = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain(); s0.buffer = nBuf(); fl.type = 'bandpass'; fl.Q.value = 1.4;
+      fl.frequency.setValueAtTime(700, t); fl.frequency.exponentialRampToValueAtTime(6500, t + 0.22); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.32, t + 0.06); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+      s0.connect(fl); fl.connect(g); g.connect(master); s0.start(t, Math.random() * 0.5, 0.32);
+      voz(f, t + 0.05, 0.5, { tipo: 'sine', vol: 0.13 }); voz(f * 1.5, t + 0.05, 0.35, { tipo: 'triangle', vol: 0.05, f0: 4000, f1: 1200 });
+    },
+    victoria() {   // fanfarria de metales
+      if (!ac) return; const t = ac.currentTime + 0.05, met = (n, a, d, v) => voz(mtof(n), t + a, d, { tipo: 'sawtooth', vol: v || 0.09, f0: 900, f1: 3200, at: 0.03, sus: 0.6, det: [-10, 0, 10] });
+      bombo(t, master, 1); golpeRuido(t, 1.4, 0.35, 'highpass', 4000);
+      [[60, 0], [64, 0.16], [67, 0.32]].forEach(([n, a]) => met(n, a, 0.22));
+      [60, 64, 67, 72].forEach(n => met(n, 0.5, 1.9, 0.07)); met(48, 0.5, 1.9, 0.09);
+      bombo(t + 0.5, master, 1); golpeRuido(t + 0.5, 2.2, 0.4, 'highpass', 6000);
+      [84, 88, 91, 96].forEach((n, i) => voz(mtof(n), t + 0.55 + i * 0.07, 0.9, { tipo: 'sine', vol: 0.06 }));
+    },
+    derrota() {
+      if (!ac) return; const t = ac.currentTime + 0.05;
+      [[57, 0], [53, 0.35], [52, 0.7]].forEach(([n, a]) => voz(mtof(n), t + a, 0.6, { tipo: 'sawtooth', vol: 0.08, f0: 1400, f1: 300, det: [-12, 12] }));
+      voz(mtof(45), t + 1.05, 2.2, { tipo: 'sawtooth', vol: 0.1, f0: 900, f1: 120, det: [-15, 0, 15] }); bombo(t + 1.05, master, 0.8);
+    },
+    cuenta() { if (!ac) return; voz(mtof(88 + Math.floor(Math.random() * 3) * 2), ac.currentTime, 0.07, { tipo: 'square', vol: 0.04, f0: 5000 }); },
     vs() { ruido(0.8, 0.45, 200, 4000); tono(55, 1, 'sawtooth', 0.22, 1); tono(110, 0.6, 'square', 0.1, 1, 0.5); tono(880, 0.4, 'square', 0.06, 1, 0.55); },
     ronda() { tono(660, 0.08, 'square', 0.07); tono(990, 0.16, 'square', 0.07, 1, 0.08); ruido(0.15, 0.12, 4000, 8000, 0.04); }
   };
@@ -340,7 +412,7 @@ const VISTAS = {};
 function ir(v, arg) {
   if (v !== 'login' && !SES) v = 'login';
   if (VISTA === 'combate' && v !== 'combate' && window.Combate && Combate.activo()) { if (!Combate.salirOk()) return; }
-  VISTA = v; Son.click();
+  VISTA = v; Son.click(); Son.modo(v === 'combate' ? 'batalla' : 'menu');
   const conBarras = v !== 'login' && v !== 'combate';
   $('#top').classList.toggle('oculto', !conBarras); $('#nav').classList.toggle('oculto', !conBarras);
   $$('#nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v || (b.dataset.v === 'combatir' && ['aventura', 'arena', 'ranking', 'combatir'].includes(v))));
@@ -909,13 +981,36 @@ VISTAS.arena = div => {
   $('#bBuscar').onclick = e => { ocupado(e.target, true); Son.estado(); Combate.empezar({ modo: 'pvp' }).then(() => ocupado(e.target, false)); };
 };
 VISTAS.ranking = div => {
-  div.innerHTML = `<div class="ancho"><div class="tit"><h1>RANKING</h1></div><div class="pestanas" id="rp"><button class="on" data-k="arena">ARENA</button><button data-k="aventura">AVENTURA</button></div><div class="panel"><table class="ranking" id="rt"><tr><td>…</td></tr></table></div></div>`;
-  api('ranking').then(d => {
-    if (!d.ok) return toast(d.error, 'err');
-    const pinta = k => { $$('#rp button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
-      $('#rt').innerHTML = (d[k] || []).map((r, i) => `<tr class="${r.usuario === SES.perfil.usuario ? 'yo' : ''}"><td>${i + 1}</td><td>${esc(r.usuario)}</td><td style="text-align:right;font-family:Orbitron">${k === 'arena' ? r.elo + ` <small class="rVD"><b style="color:var(--v)">${r.v}V</b> <b style="color:var(--r)">${r.d}D</b></small>` : 'Etapa ' + r.etapa}</td></tr>`).join('') || '<tr><td colspan="3" class="nota">Todavía no hay nadie. ¡Sé el primero!</td></tr>'; };
-    $$('#rp button').forEach(b => b.onclick = () => pinta(b.dataset.k)); pinta('arena');
-  });
+  let pest = 'arena', D = null;
+  div.innerHTML = `<div class="ancho"><div class="tit"><h1>RANKING</h1></div><div class="pestanas" id="rp"><button class="on" data-k="arena">⚔ ARENA</button><button data-k="aventura">🗺 AVENTURA</button></div><div id="rkC"><div class="vacio">Cargando…</div></div></div>`;
+  const pct = r => r.v + r.d ? Math.round(r.v / (r.v + r.d) * 100) : 0;
+  const AYUDA = {
+    arena: '<b>Ordenado por puntos de arena.</b> Todos empiezan con <b>1000</b>. Ganar suma puntos y perder resta: ganar a alguien con más puntos que tú suma mucho y perder contra alguien con menos resta mucho. Cuentan las partidas contra jugadores y contra bots.',
+    aventura: '<b>Ordenado por la etapa más alta superada</b> en la Aventura (hay 30). Gana quien haya llegado más lejos.'
+  };
+  function valor(k, r) { return k === 'arena' ? `<b class="rkPts">${fmt(r.elo)}</b><small>puntos</small>` : `<b class="rkPts">${r.etapa}</b><small>de 30</small>`; }
+  function pinta() {
+    $$('#rp button').forEach(b => b.classList.toggle('on', b.dataset.k === pest));
+    const L = (D && D[pest]) || [], yoU = SES.perfil.usuario, iy = L.findIndex(r => r.usuario === yoU), p = SES.perfil;
+    const mio = pest === 'arena' ? { usuario: yoU, elo: p.elo, v: p.victorias, d: p.derrotas } : { usuario: yoU, etapa: p.etapa };
+    const jugado = pest === 'arena' ? p.victorias + p.derrotas > 0 : p.etapa > 0;
+    const puesto = iy >= 0 ? `<b>${iy + 1}º</b> de ${L.length}` : jugado ? 'Fuera del top 50' : (pest === 'arena' ? 'Juega en la Arena para entrar' : 'Supera la etapa 1 para entrar');
+    const stats = pest === 'arena'
+      ? `<div class="rkSt"><b>${fmt(mio.elo)}</b><small>PUNTOS</small></div><div class="rkSt v"><b>${mio.v}</b><small>VICTORIAS</small></div><div class="rkSt d"><b>${mio.d}</b><small>DERROTAS</small></div><div class="rkSt"><b>${pct(mio)}%</b><small>GANADAS</small></div>`
+      : `<div class="rkSt"><b>${mio.etapa}/30</b><small>ETAPA</small></div><div class="rkBar"><i style="width:${mio.etapa / 30 * 100}%"></i></div>`;
+    const med = i => ['oro', 'plata', 'bronce'][i];
+    const podio = L.slice(0, 3).map((r, i) => ({ r, i }));
+    const ordenPodio = podio.length === 3 ? [podio[1], podio[0], podio[2]] : podio;
+    $('#rkC').innerHTML = `<p class="rkAyuda">${AYUDA[pest]}</p>
+      <div class="rkYo"><span class="rkAv">${esc((yoU || '?')[0].toUpperCase())}</span><div class="rkYoTxt"><small>TU POSICIÓN</small><div>${puesto}</div></div><div class="rkStats">${stats}</div></div>
+      ${L.length ? `<div class="rkPodio">${ordenPodio.map(({ r, i }) => `<div class="rkP ${med(i)}${r.usuario === yoU ? ' yo' : ''}"><span class="rkMed">${i + 1}</span><b class="rkNom">${esc(r.usuario)}</b>${valor(pest, r)}${pest === 'arena' ? `<span class="rkVD"><i class="v">${r.v}V</i><i class="d">${r.d}D</i></span>` : ''}<div class="rkBase"></div></div>`).join('')}</div>` : ''}
+      <div class="panel rkTabla"><table class="ranking"><thead><tr><th>#</th><th>JUGADOR</th>${pest === 'arena' ? '<th class="n">PUNTOS</th><th class="n v">V</th><th class="n d">D</th><th class="n m">%</th>' : '<th class="n">ETAPA</th><th class="m">PROGRESO</th>'}</tr></thead><tbody>
+      ${L.map((r, i) => `<tr class="${r.usuario === yoU ? 'yo' : ''}"><td><span class="rkN ${i < 3 ? med(i) : ''}">${i + 1}</span></td><td class="rkJ">${esc(r.usuario)}${r.usuario === yoU ? ' <em>TÚ</em>' : ''}</td>${pest === 'arena'
+        ? `<td class="n"><b>${fmt(r.elo)}</b></td><td class="n v">${r.v}</td><td class="n d">${r.d}</td><td class="n m">${pct(r)}%</td>`
+        : `<td class="n"><b>${r.etapa}</b><small>/30</small></td><td class="m"><div class="rkBar mini"><i style="width:${r.etapa / 30 * 100}%"></i></div></td>`}</tr>`).join('') || `<tr><td colspan="6" class="nota" style="text-align:center;padding:18px">Todavía no hay nadie. ¡Sé el primero!</td></tr>`}</tbody></table></div>`;
+  }
+  $$('#rp button').forEach(b => b.onclick = () => { pest = b.dataset.k; Son.click(); pinta(); });
+  api('ranking').then(d => { if (!d.ok) return toast(d.error, 'err'); D = d; pinta(); });
 };
 
 /* =========================================================
@@ -945,7 +1040,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 36;   // subir este número (y version.json) en cada actualización
+const VERSION = 37;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();
