@@ -681,3 +681,12 @@ body.hitstop .rb *{animation-play-state:paused!important}
   .escenario .rb{flex:0 1 33%;min-width:0;max-width:34%;height:auto;aspect-ratio:240/220;margin:0 -1.5%}
   .escenario .rb:nth-child(2){max-width:38%;flex-basis:38%;height:auto}
 }
+
+/* ---------- login: FUTURMOVIL · PRESENTA · logo CRIATURIX ---------- */
+.lPresenta{font-family:Orbitron;font-weight:700;font-size:clamp(10px,1.6vw,13px);letter-spacing:.55em;margin:8px 0 0;padding-left:.55em;color:#c6d6e0;text-shadow:0 0 10px rgba(0,229,255,.5);opacity:0;animation:lPres .8s .3s forwards}
+@keyframes lPres{from{opacity:0;letter-spacing:1.2em}to{opacity:1;letter-spacing:.55em}}
+.lCx{margin:6px 0 4px;line-height:0}
+.lCx img{width:min(560px,92%);height:auto;filter:drop-shadow(0 8px 18px rgba(0,0,0,.7)) drop-shadow(0 0 14px rgba(177,75,255,.35));animation:lCxIn .9s .45s cubic-bezier(.2,1.4,.4,1) backwards,lCxFlota 4s 1.4s ease-in-out infinite}
+@keyframes lCxIn{from{opacity:0;transform:scale(.6) translateY(20px);filter:blur(8px)}}
+@keyframes lCxFlota{50%{transform:translateY(-6px)}}
+@media (min-width:900px) and (min-height:560px){.lPresenta{padding-left:0}.lCx img{margin-left:-2%}}

@@ -306,7 +306,8 @@ VISTAS.login = div => {
   div.innerHTML = `<div class="login">
     <div class="lHero">
       <img class="lLogo" id="lLogo" src="img/logo.webp" alt="Futurmovil">
-      <div class="lTitulo">CRIATURIX</div>
+      <div class="lPresenta">PRESENTA</div>
+      <h1 class="lCx"><img src="img/logo_criaturix.webp?v=1" alt="CRIATURIX"></h1>
       <div class="lLema">Cría · Combate · Colecciona</div>
       <div class="lDesfile">${ROBOT.svg(g1)}${ROBOT.svg(g2)}${ROBOT.svg(g3)}</div>
     </div>
@@ -870,7 +871,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 26;   // subir este número (y version.json) en cada actualización
+const VERSION = 27;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();
