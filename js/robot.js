@@ -189,6 +189,8 @@ var ROBOT = (function () {
       '<path class="sup" d="M' + f(cx - r * 1.1) + ' ' + f(cy - r * 1.25) + 'H' + f(cx + r * 1.1) + 'V' + f(cy + r * .35) + 'Q' + f(cx) + ' ' + f(cy + r * .72) + ' ' + f(cx - r * 1.1) + ' ' + f(cy + r * .35) + 'Z" fill="url(#pg' + id + ')"/>' +
       '<path class="inf" d="M' + f(cx - r * 1.1) + ' ' + f(cy + r * 1.15) + 'H' + f(cx + r * 1.1) + 'V' + f(cy + r * .3) + 'Q' + f(cx) + ' ' + f(cy + r * .1) + ' ' + f(cx - r * 1.1) + ' ' + f(cy + r * .3) + 'Z" fill="url(#pi' + id + ')"/></g>';
   }
+  var ANTENA = {"sombra":[313,-129,306,221],"cuantico":[331,-140,252,246],"cromo":[346,-127,260,218],"bio":[415,-112,247,233],"voltio":[292,-127,277,258],"plasma":[328,-127,256,216]};   // antenas nuevas (van por detrás del cuerpo)
+  var PURA = {"sombra":[-112,-130,1217,1037],"cuantico":[-100,-141,1190,1068],"cromo":[-114,-127,1234,1018],"bio":[-113,-112,1197,1003],"voltio":[-100,-127,1219,1017],"plasma":[-102,-127,1217,1018]};   // criatura pura entera (todas las piezas de su clase)
   var COLA_FRENTE = { cuantico: 1 };   // colas con una parte que va por delante de la pata
   var COLA = {"plasma":[-101,32,214,614],"voltio":[-99,-1,194,608],"bio":[-113,-26,219,671],"cromo":[-113,28,232,576],"cuantico":[-100,447,490,480],"sombra":[-112,-108,295,725]};   // colas nuevas en el marco común (x, y, ancho, alto)
   var CARA = { ojo: [587, 133, 307, 307], boca: [624, 396, 363, 305] };
@@ -232,10 +234,11 @@ var ROBOT = (function () {
     if (!genes || !genes.p) return '';
     var cls = CX.CLASES[genes.c] ? genes.c : 'cromo', K = C(cls), id = 'r' + (++n);
     var pp = {}; CX.SLOTS.forEach(function (s) { pp[s] = CX.parteGen(genes.p[s][0]); });
+    var pura = PURA[cls] && CX.SLOTS.every(function (s) { return pp[s].c === cls; });
     var BW = 160, s = BW / FR.w, BH = FR.h * s, X0 = 50, Y0 = 200 - BH;
     var P = function (x, y) { return [X0 + x * s, Y0 + y * s]; };
     var tinte = TINTE[genes.col || 0];
-    var pieza = function (k, box) { return '<image href="' + BASE + k + '.webp?v=14" x="' + (X0 + box[0] * s).toFixed(1) + '" y="' + (Y0 + box[1] * s).toFixed(1) + '" width="' + (box[2] * s).toFixed(1) + '" height="' + (box[3] * s).toFixed(1) + '"/>'; };
+    var pieza = function (k, box) { return '<image href="' + BASE + k + '.webp?v=22" x="' + (X0 + box[0] * s).toFixed(1) + '" y="' + (Y0 + box[1] * s).toFixed(1) + '" width="' + (box[2] * s).toFixed(1) + '" height="' + (box[3] * s).toFixed(1) + '"/>'; };
     var ce = CX.CLASES[pp.espalda.c] ? pp.espalda.c : cls;
     var efectos = (TUBOS[cls] || TUBOS.plasma).map(function (t, i) {
       var p = P(t[0], t[1]);
@@ -248,16 +251,17 @@ var ROBOT = (function () {
     return '<svg class="rb ' + (opts.cls || '') + '" data-fx="' + ce + '" viewBox="0 0 240 220" overflow="visible" xmlns="http://www.w3.org/2000/svg">' + defs +
       '<ellipse class="rb-sombra" cx="122" cy="203" rx="70" ry="7" fill="' + K.col + '" opacity=".25"/>' +
       '<g class="rb-cuerpo">' +
+      (pura ? '<g class="rb-fx">' + efectos + '</g>' + pieza('pura_' + cls, PURA[cls]) + parpado(cls, id) :
       '<g class="rb-cola' + (COLA_FRENTE[pp.cola.c] ? ' fija' : '') + '">' + pieza('cola_' + (COLA[pp.cola.c] ? pp.cola.c : cls), COLA[pp.cola.c] || COLA[cls]) + '</g>' +
       '<g class="rb-fx">' + efectos + '</g>' +
-      '<g class="rb-ant">' + img(nom('antenas', pp.antenas), an[0], an[1], 48, 66, .5, 1) + '</g>' +
+      '<g class="rb-ant">' + pieza('antena_' + (ANTENA[pp.antenas.c] ? pp.antenas.c : cls), ANTENA[pp.antenas.c] || ANTENA[cls]) + '</g>' +
       
-      '<image href="' + BASE + 'cuerpo_' + cls + '.webp?v=14" x="' + X0 + '" y="' + Y0.toFixed(1) + '" width="' + BW + '" height="' + BH.toFixed(1) + '"' + (tinte ? ' style="filter:' + tinte + '"' : '') + '/>' +
+      '<image href="' + BASE + 'cuerpo_' + cls + '.webp?v=22" x="' + X0 + '" y="' + Y0.toFixed(1) + '" width="' + BW + '" height="' + BH.toFixed(1) + '"' + (tinte ? ' style="filter:' + tinte + '"' : '') + '/>' +
       (COLA_FRENTE[pp.cola.c] ? pieza('cola_' + pp.cola.c + '_frente', COLA[pp.cola.c]) : '') +
       (pp.ojos.c !== cls && CX.CLASES[pp.ojos.c] ? pieza('cara_ojo_' + pp.ojos.c, CARA.ojo) : '') +
       (pp.boca.c !== cls && CX.CLASES[pp.boca.c] ? pieza('cara_boca_' + pp.boca.c, CARA.boca) : '') +
       parpado(CX.CLASES[pp.ojos.c] ? pp.ojos.c : cls, id) +
-      '<g class="rb-cuerno">' + pieza('cuerno_' + (CUERNO[pp.cuerno.c] ? pp.cuerno.c : cls), CUERNO[pp.cuerno.c] || CUERNO[cls]) + '</g>' +
+      '<g class="rb-cuerno">' + pieza('cuerno_' + (CUERNO[pp.cuerno.c] ? pp.cuerno.c : cls), CUERNO[pp.cuerno.c] || CUERNO[cls]) + '</g>') +
       '</g></svg>';
   }
   /* huevo con su clase (o '?' si no se conoce) */
