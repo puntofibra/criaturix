@@ -220,13 +220,13 @@ var ROBOT = (function () {
     var ce = CX.CLASES[pp.espalda.c] ? pp.espalda.c : cls;
     var efectos = (TUBOS[cls] || TUBOS.plasma).map(function (t, i) {
       var p = P(t[0], t[1]);
-      return '<g transform="translate(' + p[0].toFixed(1) + ' ' + p[1].toFixed(1) + ') rotate(' + t[2] + ')">' + fxEspalda(ce, id, i) + '</g>';
+      return '<g transform="translate(' + p[0].toFixed(1) + ' ' + p[1].toFixed(1) + ') rotate(' + t[2] + ')"><g class="rb-tubo"><circle r=".4" opacity="0"/><circle cy="-10" r=".4" opacity="0"/></g></g>';
     }).join('');
     var an = P(560, 64 + 40), cu = P(770, 120 + 40), co = P(70, 520);
     var defs = '<defs><linearGradient id="fl' + id + '" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fff2a0"/><stop offset=".35" stop-color="#ffb02e"/><stop offset=".75" stop-color="#ff4d2e"/><stop offset="1" stop-color="#ff2a10" stop-opacity=".2"/></linearGradient>' +
       '<linearGradient id="hz' + id + '" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fff"/><stop offset=".3" stop-color="#8af9ff" stop-opacity=".9"/><stop offset="1" stop-color="#00e5ff" stop-opacity="0"/></linearGradient>' +
       '<linearGradient id="fs' + id + '" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ffd0f6"/><stop offset=".4" stop-color="#ff4fd8"/><stop offset="1" stop-color="#b14bff" stop-opacity=".1"/></linearGradient><filter id="bl' + id + '" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="1.6"/></filter></defs>';
-    return '<svg class="rb ' + (opts.cls || '') + '" viewBox="0 0 240 220" overflow="visible" xmlns="http://www.w3.org/2000/svg">' + defs +
+    return '<svg class="rb ' + (opts.cls || '') + '" data-fx="' + ce + '" viewBox="0 0 240 220" overflow="visible" xmlns="http://www.w3.org/2000/svg">' + defs +
       '<ellipse class="rb-sombra" cx="122" cy="203" rx="70" ry="7" fill="' + K.col + '" opacity=".25"/>' +
       '<g class="rb-cuerpo">' +
       '<g class="rb-cola">' + img(nom('cola', pp.cola), co[0], co[1], 64, 52, 1, .5) + '</g>' +
