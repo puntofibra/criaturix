@@ -939,3 +939,31 @@ a.btn{text-decoration:none}
 .fcBtns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px;opacity:0;animation:fcSube .5s 1.9s forwards}
 @media (max-width:600px){.fcPr{min-width:130px;padding:10px 12px}.fcPr b{font-size:28px}.fcTit small{font-size:11px;letter-spacing:.18em}}
 @media (prefers-reduced-motion:reduce){.finCx *{animation-duration:.01s!important;animation-iteration-count:1!important}}
+
+/* combate en móvil horizontal (pantalla baja): todo compacto para que las cartas quepan enteras */
+@media (orientation:landscape) and (max-height:520px){
+  .vista.combate{padding:calc(4px + var(--safeT)) calc(6px + env(safe-area-inset-right)) calc(2px + var(--safeB)) calc(6px + env(safe-area-inset-left))}
+  .cbTop{padding:0 2px 2px;gap:6px}
+  .cbTop .ronda{font-size:11px;padding:4px 8px}.cbTop .vs{font-size:11px}
+  .cbTop .ibtn{width:30px;height:30px}.cbTop .btn.peq{padding:5px 10px;font-size:11px}.cbTop .reloj{padding:3px 7px;font-size:11px}
+  .campo2{gap:10px}
+  .lado,.lu{min-height:0}
+  .lu .cuerpo{max-width:min(15vw,30vh)}
+  .lu .hp{height:8px;margin-top:0}.lu .hpTxt{font-size:10px;margin-top:1px}.lu .luNom{font-size:10px}
+  .lu .ests i{font-size:8px;padding:1px 4px}
+  .cbBajo{padding:3px 6px 2px;padding-bottom:calc(2px + var(--safeB))}
+  .cbCtrl{gap:6px;padding:0 2px}
+  .energia{gap:3px}.energia i{width:11px;height:11px}.energia span{font-size:13px}
+  .mazoN{font-size:11px}
+  .cbCtrl .btn.grande{padding:7px 18px;font-size:15px}.cbCtrl .btn.peq{padding:5px 10px;font-size:11px}
+  .cbBajo .mano{padding:12px 2px 4px;gap:6px}
+  .cbBajo .carta{width:88px;height:120px;padding:6px;border-radius:12px}
+  .cbBajo .carta .kArte{height:44px;margin:-6px -6px 3px}
+  .cbBajo .carta .kCoste{width:20px;height:20px;font-size:11px;top:4px;left:4px}
+  .cbBajo .carta .kSlot{width:20px;height:20px;padding:2px;top:4px;right:4px}
+  .cbBajo .carta .kNom{font-size:9px;min-height:20px}
+  .cbBajo .carta .kVal{font-size:11px;margin:2px 0 1px;min-height:14px}
+  .cbBajo .carta .kTxt{font-size:9px;max-height:30px}
+  .cbBajo .carta.elegida{transform:translateY(-9px)}
+  .lu .pila b{width:12px;height:16px}
+}
