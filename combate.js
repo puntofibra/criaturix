@@ -5,6 +5,10 @@
 const Combate = (() => {
   let S = null, sel = { 0: [], 1: [], 2: [] }, ocup = false, animando = false, vel = load('vel', 1), relojT = 0, sondeoT = 0, buscando = null;
   const esPvp = () => !!(S && S.meta && S.meta.real);   // partida contra otro jugador real
+  const conReloj = () => !!(S && S.meta && S.meta.modo === 'pvp');   // arena: reloj por turno (también contra bots, para que no se note)
+  const turnoMs = () => ((DATA.reglas && DATA.reglas.turnoSeg) || 40) * 1000;
+  // contra un bot: el «rival» tarda un rato aleatorio en elegir, como una persona
+  function rivalBot(primera) { if (!S || esPvp()) return; S.rivalT = Date.now() + (primera ? 6000 : 0) + 2500 + Math.random() * 14000; S.rivalListo = false; }
   const EST = { corr: ['CORR', '#d38bff'], aturde: ['ATURD', '#ffe03a'], miedo: ['MIEDO', '#ff4fd8'], atkMas: ['ATQ▲', '#ff6b5a'], atkMenos: ['ATQ▼', '#9fb6c4'], velMas: ['VEL▲', '#19ff6a'], velMenos: ['VEL▼', '#9fb6c4'], expuesto: ['EXPU', '#ffb02e'] };
   const NOM_EST = { corrosion: 'CORROSIÓN', aturdido: 'ATURDIDO', miedo: 'MIEDO', debilitado: 'DEBILITADO', lento: 'LENTO', expuesto: 'EXPUESTO', potenciado: 'POTENCIADO', veloz: 'VELOZ' };
 
@@ -18,6 +22,7 @@ const Combate = (() => {
   function nuevoS(d) {
     S = { meta: d.meta, vista: d.vista, enviado: d.enviado ? d.vista.ronda : 0, rivalListo: !!d.rivalListo, anim: 0 }; sel = { 0: [], 1: [], 2: [] };
     ponReloj(d.quedan);
+    if (conReloj() && !esPvp()) { ponReloj(turnoMs() + 6000); rivalBot(true); }
   }
   function entrar(d) {
     cerrarModal(); nuevoS(d);
@@ -28,7 +33,7 @@ const Combate = (() => {
   function buscar() {
     if (buscando) return buscando;
     let cancel = false, primera = true, msgI = 0;
-    const t0 = Date.now(), lider = (SES.perfil.equipo || []).map(mia).filter(Boolean)[0];
+    const t0 = Date.now(), sid = Math.random().toString(36).slice(2, 10);
     const blips = Array.from({ length: 9 }, () => { const an = Math.random() * 360, r = 18 + Math.random() * 28; return { an, r }; });
     const o = document.createElement('div'); o.className = 'busca';
     o.innerHTML = `<div class="bsFondo"></div>
@@ -39,7 +44,7 @@ const Combate = (() => {
           <i class="bsBarrido"></i>
           ${blips.map(b => `<i class="bsBlip" style="--x:${(50 + Math.cos((b.an - 90) * Math.PI / 180) * b.r).toFixed(1)}%;--y:${(50 + Math.sin((b.an - 90) * Math.PI / 180) * b.r).toFixed(1)}%;--d:${(b.an / 360 * 2.4).toFixed(2)}s"></i>`).join('')}
           <i class="bsOnda"></i><i class="bsOnda o2"></i>
-          <div class="bsYo">${lider ? ROBOT.svg(lider.genes, { cls: 'quieto' }) : ''}</div>
+          <div class="bsYo">${OJO_RADAR}</div>
         </div>
         <div class="bsEstado"><span class="bsPunto"></span><b id="bsTxt">Escaneando la red…</b><em id="bsSeg">0:00</em></div>
         <button class="btn sec" id="bsNo">CANCELAR</button>
@@ -70,18 +75,29 @@ const Combate = (() => {
       };
       const paso = () => {
         if (cancel) return;
-        conSes('buscar', { nueva: primera ? 1 : 0 }).then(d => {
+        conSes('buscar', { nueva: primera ? 1 : 0, sid, ya: Date.now() - t0 > 7000 ? 1 : 0 }).then(d => {
           primera = false;
           if (cancel) return;
           if (!d.ok) { quitar(); toast(d.error, 'err'); return acabar(); }
           if (d.vista) return encontrado(d);
-          setTimeout(paso, 900);
+          setTimeout(paso, 700);
         });
       };
       paso();
     });
     return buscando;
   }
+  /* ojo de criaturix bio con párpados (mismo parpadeo que las criaturas) */
+  const OJO_RADAR = (() => {
+    const cx = 149, cy = 172, r = 80, f = v => v.toFixed(1);
+    return `<svg class="rb ojoRadar" viewBox="47 70 204 204"><defs><clipPath id="ojoRc"><ellipse cx="${cx}" cy="${cy}" rx="${r}" ry="${r * 1.02}"/></clipPath>
+      <linearGradient id="ojoRs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a2e16"/><stop offset=".72" stop-color="#7a4e2a"/><stop offset=".84" stop-color="#b6ff3a" stop-opacity=".5"/><stop offset=".92" stop-color="#4a2e16"/><stop offset="1" stop-color="#000" stop-opacity=".85"/></linearGradient>
+      <linearGradient id="ojoRi" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#4a2e16"/><stop offset=".8" stop-color="#7a4e2a"/><stop offset="1" stop-color="#b6ff3a" stop-opacity=".4"/></linearGradient></defs>
+      <image href="img/piezas/cara_ojo_bio.webp?v=23" x="0" y="0" width="307" height="307"/>
+      <g class="rb-parp doble" clip-path="url(#ojoRc)" style="--pd:3.2s;--pdl:-1.4s">
+      <path class="sup" d="M${f(cx - r * 1.1)} ${f(cy - r * 1.25)}H${f(cx + r * 1.1)}V${f(cy + r * .35)}Q${cx} ${f(cy + r * .72)} ${f(cx - r * 1.1)} ${f(cy + r * .35)}Z" fill="url(#ojoRs)"/>
+      <path class="inf" d="M${f(cx - r * 1.1)} ${f(cy + r * 1.15)}H${f(cx + r * 1.1)}V${f(cy + r * .3)}Q${cx} ${f(cy + r * .1)} ${f(cx - r * 1.1)} ${f(cy + r * .3)}Z" fill="url(#ojoRi)"/></g></svg>`;
+  })();
   function reanudar(c) {
     nuevoS(c);
     const m = modal(`<h2>Tienes un combate a medias</h2><p class="nota">Contra <b>${esc(c.meta.rival)}</b>, ronda ${c.vista.ronda}.</p><div class="acciones" style="justify-content:flex-end"><button class="btn sec" id="cRen">Rendirme</button><button class="btn" id="cSeg">CONTINUAR</button></div>`);
@@ -94,7 +110,7 @@ const Combate = (() => {
     if (!S) return ir('inicio');
     div.className = 'vista combate';
     const V = S.vista;
-    div.innerHTML = `<div class="cbTop"><span class="ronda">RONDA <b id="cRonda">${V.ronda}</b></span><div class="vs">${esc(V.yo.nombre)} <em>VS</em> ${esc(V.el.nombre)}</div>${esPvp() ? '<span class="reloj" id="cReloj"></span>' : ''}
+    div.innerHTML = `<div class="cbTop"><span class="ronda">RONDA <b id="cRonda">${V.ronda}</b></span><div class="vs">${esc(V.yo.nombre)} <em>VS</em> ${esc(V.el.nombre)}</div>${conReloj() ? '<span class="reloj" id="cReloj"></span>' : ''}
         <button class="ibtn" id="cSon"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="ondas" d="M16 8a5 5 0 0 1 0 8" fill="none" stroke-width="2"/></svg></button><button class="ibtn vel" id="cVel" title="Velocidad de la animación">x${vel}</button><button class="ibtn bPower" aria-label="Salir del juego" title="Salir del juego">${ICO_POWER}</button><button class="btn sec peq" id="cSalir">SALIR</button></div>
       <div class="campo2" id="campo"><div class="lado el" id="ladoEl"></div><div class="lado yo" id="ladoYo"></div></div>
       <div class="cbBajo"><div class="cbCtrl"><div class="energia" id="cEn"></div><span class="mazoN" id="cMazo"></span>
@@ -110,14 +126,16 @@ const Combate = (() => {
     FX.montar($('#campo'));
     if (window.ARENA) ARENA.montar(div);
     if (!S.visto) { S.visto = 1; intro(div); }
-    if (esPvp()) { if (S.enviado === V.ronda) ponEspera(); iniciaPvp(); }
+    if (conReloj()) { if (S.enviado === V.ronda) ponEspera(); iniciaPvp(); }
+    zoomCartas($('#cMano'));
   }
   /* ---------- partida contra otro jugador: reloj del turno y consulta al servidor ---------- */
   function ponReloj(q) { if (S && q != null) S.limite = Date.now() + q; }
-  function ponEspera() { const c = $('#campo'); if (c && !$('#cEsp')) c.insertAdjacentHTML('beforeend', `<div class="esperando" id="cEsp"><span>${esPvp() ? 'ESPERANDO A ' + esc(S.vista.el.nombre.toUpperCase()) + '…' : 'RESOLVIENDO…'}</span></div>`); }
+  function ponEspera() { const c = $('#campo'); if (c && !$('#cEsp')) c.insertAdjacentHTML('beforeend', `<div class="esperando" id="cEsp"><span>${conReloj() ? 'ESPERANDO A ' + esc(S.vista.el.nombre.toUpperCase()) + '…' : 'RESOLVIENDO…'}</span></div>`); }
   function quitaEspera() { const e = $('#cEsp'); if (e) e.remove(); }
   function pintaReloj() {
     const el = $('#cReloj'); if (!el || !S) return;
+    if (!esPvp() && S.rivalT && Date.now() > S.rivalT) S.rivalListo = true;
     if (animando || S.vista.fin || !S.limite) { el.innerHTML = ''; el.className = 'reloj'; return; }
     const q = Math.max(0, Math.ceil((S.limite - Date.now()) / 1000)), yaEnv = S.enviado === S.vista.ronda;
     el.innerHTML = `⏱<b>${q}</b>${S.rivalListo && !yaEnv ? '<small>RIVAL LISTO</small>' : ''}`;
@@ -126,11 +144,12 @@ const Combate = (() => {
   function iniciaPvp() {
     clearInterval(relojT); clearTimeout(sondeoT);
     relojT = setInterval(() => {
-      if (VISTA !== 'combate' || !esPvp()) return clearInterval(relojT);
+      if (VISTA !== 'combate' || !conReloj()) return clearInterval(relojT);
       pintaReloj();
       // se acaba el tiempo: se envían las cartas que haya elegidas
       if (!animando && !ocup && !S.vista.fin && S.enviado !== S.vista.ronda && S.limite && S.limite - Date.now() < 1200) luchar();
     }, 500);
+    if (!esPvp()) return;   // contra bots el reloj es solo local
     const sondeo = () => {
       if (VISTA !== 'combate' || !esPvp()) return;
       const r = S.vista.ronda;
@@ -198,7 +217,7 @@ const Combate = (() => {
     });
   }
   function tocaCarta(u) {
-    if (ocup || (esPvp() && S.enviado === S.vista.ronda)) return;
+    if (ocup || zoomHecho || (conReloj() && S.enviado === S.vista.ronda)) return;
     const V = S.vista, k = V.yo.mano.find(x => x.u === u); if (!k) return;
     const c = V.yo.cr[k.p]; if (!c.vivo) return;
     const i = sel[k.p].indexOf(u);
@@ -210,18 +229,42 @@ const Combate = (() => {
     }
     pintaMano(); pintaPilas();
   }
+  /* mantener pulsada una carta: se ve en grande; al soltar, desaparece */
+  let zoomHecho = false;
+  function zoomCartas(cont) {
+    if (!cont || cont._zoom) return; cont._zoom = 1;
+    let t = 0, z = null, x0 = 0, y0 = 0;
+    const quitar = () => { clearTimeout(t); if (z) { z.classList.add('fuera'); const zz = z; setTimeout(() => zz.remove(), 160); z = null; setTimeout(() => zoomHecho = false, 60); } };
+    cont.addEventListener('pointerdown', e => {
+      const c = e.target.closest('.carta'); if (!c) return;
+      x0 = e.clientX; y0 = e.clientY; zoomHecho = false;
+      t = setTimeout(() => {
+        zoomHecho = true; vib(15);
+        z = document.createElement('div'); z.className = 'zoomCarta';
+        const k = c.cloneNode(true); k.classList.remove('elegida', 'bloq'); k.classList.add('grande'); z.appendChild(k);
+        document.body.appendChild(z);
+      }, 550);
+    });
+    cont.addEventListener('pointermove', e => { if (!z && (Math.abs(e.clientX - x0) > 10 || Math.abs(e.clientY - y0) > 10)) clearTimeout(t); });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => cont.addEventListener(ev, quitar));
+    cont.addEventListener('contextmenu', e => e.preventDefault());
+  }
   function luchar() {
-    if (ocup || animando || (esPvp() && S.enviado === S.vista.ronda)) return; ocup = true;
+    if (ocup || animando || (conReloj() && S.enviado === S.vista.ronda)) return; ocup = true;
     const btn = $('#cLuchar'), r = S.vista.ronda; ocupado(btn, true);
     ponEspera();
-    conSes('turno', { ronda: r, jug: sel }).then(d => {
+    // contra un bot de arena: si el «rival» aún no ha elegido, se espera un poco como con una persona
+    const espera0 = conReloj() && !esPvp() && S.rivalT > Date.now() ? Math.min(S.rivalT - Date.now(), 1200 + Math.random() * 2800) : 0;
+    if (espera0) { S.enviado = r; pintaMano(); pintaReloj(); }
+    const jug = sel;
+    setTimeout(() => conSes('turno', { ronda: r, jug }).then(d => {
       if (!S || S.anim === r) return;   // la ronda ya se está animando (llegó antes por la consulta)
       if (!d.ok) { quitaEspera(); ocup = false; ocupado(btn, false); return toast(d.error, 'err'); }
       if (esPvp() && !d.resuelta) {   // falta que elija el rival
         S.enviado = r; ponReloj(d.quedan); S.rivalListo = false; ocup = false; pintaMano(); pintaReloj(); return;
       }
       procesar(d, r);
-    });
+    }), espera0);
   }
   async function procesar(d, r) {
     if (!S || S.anim === r) return;
@@ -232,6 +275,7 @@ const Combate = (() => {
     animando = false;
     if (!S) { ocup = false; return; }
     S.vista = d.vista; S.meta = d.meta || S.meta; S.enviado = 0; S.rivalListo = false;
+    if (conReloj() && !esPvp() && !S.vista.fin) { ponReloj(turnoMs()); rivalBot(false); }
     if (VISTA !== 'combate') { ocup = false; return; }
     pintaLados(); pintaMano(); $('#cRonda').textContent = S.vista.ronda;
     ocup = false; ocupado($('#cLuchar'), false); pintaReloj();
@@ -251,7 +295,7 @@ const Combate = (() => {
     $('.hpTxt', el).innerHTML = `<span class="pv">${c.pv}</span>/${c.pvMax}${c.esc > 0 ? ` <span class="e">⛨${c.esc}</span>` : ''}`;
     el.classList.toggle('conEsc', c.esc > 0);
   }
-  function centro(el) { const r = $('.cuerpo', el).getBoundingClientRect(), b = $('#campo').getBoundingClientRect(); return { x: r.left - b.left + r.width / 2, y: r.top - b.top + r.height / 2 }; }
+  function centro(el) { const r = $('.cuerpo', el).getBoundingClientRect(), b = $('#campo').getBoundingClientRect(); return { x: r.left - b.left + r.width / 2, y: r.top - b.top + r.height * 0.42 }; }   // centro del cuerpo de la criatura (no de su plataforma)
   function clase(el, c, ms) { if (!el) return; el.classList.remove(c); void el.offsetWidth; el.classList.add(c); setTimeout(() => el.classList.remove(c), ms); }
   const EST_COL = { corrosion: '#d38bff', aturdido: '#ffe03a', miedo: '#ff4fd8', debilitado: '#9fb6c4', lento: '#9fb6c4', expuesto: '#ffb02e', potenciado: '#ff6b5a', veloz: '#19ff6a' };
   /* la carta sale de la mano (o de arriba si es del rival) y vuela hasta su criatura */
@@ -349,7 +393,7 @@ const Combate = (() => {
     const vista = $('.vista.combate'); if (!vista) return;
     const sig = S.meta.modo === 'pve' && gana && S.meta.etapa < 30, modo = S.meta.modo, et = S.meta.etapa;
     const titulo = gana ? 'VICTORIA' : emp ? 'EMPATE' : 'DERROTA';
-    const sub = modo === 'pve' ? (pr.nuevaEtapa ? '¡ETAPA ' + et + ' SUPERADA!' : 'ETAPA ' + et) : 'ARENA · contra ' + S.vista.el.nombre;
+    const sub = pr.rendido ? 'TE HAS RENDIDO' : modo === 'pve' ? (pr.nuevaEtapa ? '¡ETAPA ' + et + ' SUPERADA!' : 'ETAPA ' + et) : 'ARENA · contra ' + S.vista.el.nombre;
     const o = document.createElement('div'); o.className = 'finCx ' + tipo;
     o.innerHTML = `<canvas class="fcFx"></canvas><div class="fcRayos"></div><div class="fcAro"></div>
       <div class="fcCaja">
@@ -411,7 +455,9 @@ const Combate = (() => {
   }
   function volverA() { return S && S.meta.modo === 'pvp' ? 'arena' : 'aventura'; }
   async function rendirse() {
-    const d = await conSes('rendirse'); if (d.premio && d.premio.perfil) aplicaPerfil(d.premio.perfil);
+    const d = await conSes('rendirse');
+    if (VISTA === 'combate' && S && $('.vista.combate')) { const pr = Object.assign({ resultado: 'pierde', chips: 0, elo: 0 }, d.premio || {}); pr.rendido = 1; S.vista.fin = 'pierde'; return fin(pr); }
+    if (d.premio && d.premio.perfil) aplicaPerfil(d.premio.perfil);
     S = null; ir('inicio');
   }
   function salir() {

@@ -296,6 +296,31 @@ function confirmar(titulo, texto, si, clsBtn) {
   });
 }
 function ocupado(btn, si) { if (!btn) return; if (si) { btn.dataset.t = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="orb">···</span>'; } else { btn.disabled = false; if (btn.dataset.t) btn.innerHTML = btn.dataset.t; } }
+/* celebración pro (huevo creado / eclosión): rayos de luz, onda y chispas */
+function celebrar(el, col) {
+  if (!el) return;
+  const d = document.createElement('div'); d.className = 'celeb'; d.style.setProperty('--fc', col || '#ffd23f');
+  d.innerHTML = '<i class="fcRayos"></i><i class="fcAro"></i><canvas></canvas>'; el.prepend(d);
+  const cv = $('canvas', d), g = cv.getContext('2d'), dpr = Math.min(2, devicePixelRatio || 1), P = [], R = (a, b) => a + Math.random() * (b - a);
+  const W = cv.width = d.clientWidth * dpr, H = cv.height = d.clientHeight * dpr, cols = [col, '#ffffff', '#fff3b0', col];
+  const burst = (n, v) => { for (let i = 0; i < n; i++) { const an = R(0, 6.283), sp = R(v * .25, v) * dpr; P.push({ x: W / 2, y: H / 2, vx: Math.cos(an) * sp, vy: Math.sin(an) * sp, t: 0, v: R(.8, 1.6), r: R(1.2, 3) * dpr, c: cols[i % 4] }); } };
+  burst(120, 520); setTimeout(() => burst(60, 320), 350);
+  let ult = performance.now();
+  (function f(now) {
+    if (!cv.isConnected) return; const dt = Math.min(.05, (now - ult) / 1000); ult = now;
+    if (P.length < 160 && Math.random() < .5) P.push({ x: R(W * .2, W * .8), y: H, vx: R(-20, 20) * dpr, vy: R(-120, -50) * dpr, t: 0, v: R(1.5, 2.6), r: R(1, 2.2) * dpr, c: cols[Math.floor(R(0, 4))], sube: 1 });
+    g.clearRect(0, 0, W, H); g.globalCompositeOperation = 'lighter';
+    for (let i = P.length - 1; i >= 0; i--) {
+      const p = P[i]; p.t += dt; if (p.t > p.v) { P.splice(i, 1); continue; }
+      if (!p.sube) { p.vx *= .97; p.vy = p.vy * .97 + 160 * dpr * dt; }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      const a = Math.min(1, (p.v - p.t) / .5), gr = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 3);
+      gr.addColorStop(0, '#fff'); gr.addColorStop(.3, p.c); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.globalAlpha = a; g.fillStyle = gr; g.beginPath(); g.arc(p.x, p.y, p.r * 3, 0, 6.283); g.fill();
+      if (!p.sube) { g.strokeStyle = p.c; g.lineWidth = p.r * .8; g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - p.vx * .04, p.y - p.vy * .04); g.stroke(); }
+    }
+    g.globalAlpha = 1; requestAnimationFrame(f);
+  })(ult);
+}
 function confeti(n) {
   for (let i = 0; i < (n || 70); i++) {
     const d = document.createElement('i'); d.className = 'confeti';
@@ -709,7 +734,7 @@ function detalle(id, o) {
       <div class="acciones" id="dAcc"></div></div>`;
   } else {
     cuerpo = `<div class="detVis" style="--cc:${colClase(c.clase)}">${dibujo(c)}</div><div>
-      <div class="detNom"><h2>${esc(nomCr(c))}</h2>${claseHTML(c.clase)}${purezaHTML(c.genes)}${esMia && !o.mercado ? '<button class="btn sec peq" id="dRen">✎</button>' : ''}</div>
+      <div class="detNom"><h2>${esc(nomCr(c))}</h2>${claseHTML(c.clase)}${purezaHTML(c.genes)}</div>
       <p class="nota">#${c.num} · ${c.crias}/${R.maxCrias || 7} crías${c.inicial ? ' · Criatura inicial (no se puede criar ni vender)' : ''}${o.mercado ? ' · ' + (c.dueno === 'TIENDA' ? 'Tienda oficial' : 'Vende ' + esc(c.duenoNombre)) : ''}</p>
       ${statsHTML(c.genes)}
       <h3 style="font-size:13px;color:var(--tx2);margin:12px 0 8px">CARTAS</h3>
@@ -825,7 +850,7 @@ VISTAS.criadero = (div, idA) => {
       rbs[0].style.cssText = 'transition:transform .8s;transform:translateX(-60%) scale(.8)'; rbs[1].style.cssText = 'transition:transform .8s;transform:translateX(60%) scale(.8)';
       Son.cura();
       setTimeout(() => { rbs[0].style.transform = 'translateX(0) scale(.5)'; rbs[1].style.transform = 'translateX(0) scale(.5)'; }, 100);
-      setTimeout(() => { ec.innerHTML = '<div class="flashE"></div>' + ROBOT.huevo(null, { cls: 'nace' }); ec.classList.add('boom'); Son.eclosion(); confeti(40); }, 1000);
+      setTimeout(() => { ec.innerHTML = '<div class="flashE"></div>' + ROBOT.huevo(null, { cls: 'nuevo' }); ec.classList.add('boom'); Son.eclosion(); celebrar(ec, '#ff2bd6'); }, 1000);
       setTimeout(() => { $('#modal .mCerrar').classList.remove('oculto'); }, 1800);
       A = null; B = null; pinta();
     });
@@ -841,7 +866,7 @@ function eclosionar(c) {
     setTimeout(() => {
       const n = d.criatura, ec = $('.eclosion', m);
       ec.style.setProperty('--cc', colClase(n.clase));
-      ec.insertAdjacentHTML('beforeend', ROBOT.svg(n.genes, { cls: 'nace' })); ec.classList.add('boom'); Son.eclosion(); confeti(80); vib([40, 60, 120]);
+      ec.insertAdjacentHTML('beforeend', ROBOT.svg(n.genes, { cls: 'nace' })); ec.classList.add('boom'); Son.eclosion(); celebrar(ec, colClase(n.clase)); vib([40, 60, 120]);
       Object.assign(c, n);
       $('#eTit').innerHTML = '¡Ha nacido ' + esc(nomCr(n)) + '!';
       $('#eInfo').innerHTML = `<div style="text-align:center;margin:8px 0">${claseHTML(n.clase)} ${purezaHTML(n.genes)}</div>${statsHTML(n.genes)}<div class="acciones" style="justify-content:center"><button class="btn" id="eVer">VER CRIATURA</button></div>`;
@@ -1045,7 +1070,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 41;   // subir este número (y version.json) en cada actualización
+const VERSION = 42;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();

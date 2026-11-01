@@ -209,8 +209,10 @@ const Admin = (() => {
   function ajustes(c) {
     adm('ajustes').then(d => {
       if (!d.ok) return;
-      c.innerHTML = `<form id="ajF">${d.lista.map(a => `<label class="campo"><span>${esc(a.k)}</span><input name="${esc(a.k)}" value="${esc(a.v)}"><small style="color:var(--tx2)">${esc(a.ayuda)}</small></label>`).join('')}<button class="btn" type="submit">GUARDAR AJUSTES</button></form>`;
-      $('#ajF').onsubmit = e => { e.preventDefault(); const v = {}; $$('#ajF input').forEach(i => v[i.name] = i.value); adm('guardarAjustes', { valores: v }).then(r => { if (r.ok) { toast('Ajustes guardados', 'ok'); refrescar(); } }); };
+      c.innerHTML = `<form id="ajF">${d.lista.map(a => a.k === 'botsRanking'
+        ? `<label class="campo chk"><input type="checkbox" name="botsRanking" ${Number(a.v) === 1 ? 'checked' : ''}><span>Los bots puntúan en el ranking</span><small style="color:var(--tx2)">Al activarlo, los bots empiezan de cero y van apareciendo en el ranking según juegan. Al desactivarlo, desaparecen del ranking.</small></label>`
+        : `<label class="campo"><span>${esc(a.k)}</span><input name="${esc(a.k)}" value="${esc(a.v)}"><small style="color:var(--tx2)">${esc(a.ayuda)}</small></label>`).join('')}<button class="btn" type="submit">GUARDAR AJUSTES</button></form>`;
+      $('#ajF').onsubmit = e => { e.preventDefault(); const v = {}; $$('#ajF input').forEach(i => v[i.name] = i.type === 'checkbox' ? (i.checked ? 1 : 0) : i.value); adm('guardarAjustes', { valores: v }).then(r => { if (r.ok) { toast('Ajustes guardados', 'ok'); refrescar(); } }); };
     });
   }
 
