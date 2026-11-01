@@ -65,6 +65,8 @@ var FUEGO = (function () {
     lista.forEach(function (svg) {
       if (!svg.isConnected) return;
       var fx = svg.getAttribute('data-fx'), tubos = svg.querySelectorAll('.rb-tubo');
+      // criatura muerta en combate: el efecto también en gris clarito y apagado, como ella
+      g.filter = svg.closest('.muerto') ? 'grayscale(1) brightness(1.1) opacity(.35)' : 'none';
       for (var i = 0; i < tubos.length; i++) {
         var a = tubos[i].firstChild.getBoundingClientRect(), b = tubos[i].lastChild.getBoundingClientRect();
         var x = a.left + a.width / 2, y = a.top + a.height / 2, dx = b.left + b.width / 2 - x, dy = b.top + b.height / 2 - y;
@@ -72,6 +74,7 @@ var FUEGO = (function () {
         var st = est.get(tubos[i]); if (!st) { st = { p: [], s: R() * 9, n: 0 }; est.set(tubos[i], st); }
         dibuja(fx, st, x, y, Math.atan2(dy, dx), u, t + st.s, dt, i);
       }
+      g.filter = 'none';
     });
   }
 
