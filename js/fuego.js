@@ -58,9 +58,10 @@ var FUEGO = (function () {
     var d = Math.min(window.devicePixelRatio || 1, 2), W = Math.round(innerWidth * d), H = Math.round(innerHeight * d);
     if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
     g.setTransform(d, 0, 0, d, 0, 0); g.clearRect(0, 0, innerWidth, innerHeight);
-    if (t - tLista > .4) {   // refrescar qué criaturas se ven
+    if (t - tLista > .25) {   // refrescar qué criaturas se ven
       tLista = t;
-      lista = Array.prototype.slice.call(document.querySelectorAll('svg.rb[data-fx]:not(.quieto)')).filter(visible).slice(0, MAXR);
+      var capa = document.querySelector('.cIntro, .finCx, .busca');   // con una pantalla encima, solo los efectos de esa pantalla
+      lista = Array.prototype.slice.call(document.querySelectorAll('svg.rb[data-fx]:not(.quieto)')).filter(function (v) { return capa ? capa.contains(v) : visible(v); }).slice(0, MAXR);
     }
     lista.forEach(function (svg) {
       if (!svg.isConnected) return;
