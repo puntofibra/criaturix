@@ -714,11 +714,11 @@ VISTAS.inicio = div => {
    ========================================================= */
 let filtroCr = { tipo: 'todas', clase: '' };
 VISTAS.criaturas = div => {
-  div.innerHTML = `<div class="ancho"><div class="tit"><h1>MIS CRIATURAS</h1><div class="der"><button class="btn sec peq" id="bEq">EQUIPO</button><button class="btn peq" id="bMer">CONSEGUIR MÁS</button></div></div>
+  div.innerHTML = `<div class="ancho"><div class="tit"><h1>MIS CRIATURAS</h1><div class="der"><button class="btn peq bGuia" id="bGuia">📖 CÓMO SE JUEGA</button><button class="btn sec peq" id="bEq">EQUIPO</button><button class="btn peq" id="bMer">CONSEGUIR MÁS</button></div></div>
     <div class="filtros"><div class="chips" id="fTipo">${[['todas', 'Todas'], ['criatura', 'Criaturas'], ['huevo', 'Huevos'], ['venta', 'En venta']].map(([k, n]) => `<button class="chip ${filtroCr.tipo === k ? 'on' : ''}" data-k="${k}">${n}</button>`).join('')}</div>
     <select id="fClase"><option value="">Todas las clases</option>${CX.LISTA_CLASES.map(c => `<option value="${c}" ${filtroCr.clase === c ? 'selected' : ''}>${CX.CLASES[c].nom}</option>`).join('')}</select></div>
     <div class="rejilla" id="lista"></div></div>`;
-  $('#bEq').onclick = () => ir('equipo'); $('#bMer').onclick = () => ir('mercado');
+  $('#bEq').onclick = () => ir('equipo'); $('#bMer').onclick = () => ir('mercado'); $('#bGuia').onclick = () => ir('guia');
   function pinta() {
     let l = DATA.criaturas.slice().sort((a, b) => b.creada - a.creada);
     if (filtroCr.tipo === 'venta') l = l.filter(c => c.estado); else if (filtroCr.tipo !== 'todas') l = l.filter(c => c.tipo === filtroCr.tipo);
@@ -1152,7 +1152,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 53;   // subir este número (y version.json) en cada actualización
+const VERSION = 54;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();
