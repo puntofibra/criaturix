@@ -182,6 +182,12 @@ const Son = (() => {
       [0, 0.22, 0.44].forEach((dl, i) => voz(1320, t + dl, 0.5, { tipo: 'sine', vol: 0.07 / (i + 1), f0: 4000 }));
       voz(660, t, 0.35, { tipo: 'triangle', vol: 0.03 });
     },
+    grieta(i) {   // crujido de cáscara, más fuerte en cada fase
+      if (!ac) return; const t = ac.currentTime, f = 1 + (i || 0) * .35;
+      golpeRuido(t, .05, .35 * f, 'highpass', 2500); golpeRuido(t + .03, .09, .25 * f, 'bandpass', 1400, master, 3); golpeRuido(t + .07, .05, .18 * f, 'highpass', 4200);
+      voz(90 + i * 15, t, .18, { tipo: 'sine', vol: .25 * f, slide: .5 });
+      if (i >= 3) voz(mtof(76 + i), t + .05, .6, { tipo: 'sine', vol: .06 });
+    },
     cuenta() { if (!ac) return; voz(mtof(88 + Math.floor(Math.random() * 3) * 2), ac.currentTime, 0.07, { tipo: 'square', vol: 0.04, f0: 5000 }); },
     vs() { ruido(0.8, 0.45, 200, 4000); tono(55, 1, 'sawtooth', 0.22, 1); tono(110, 0.6, 'square', 0.1, 1, 0.5); tono(880, 0.4, 'square', 0.06, 1, 0.55); },
     ronda() { tono(660, 0.08, 'square', 0.07); tono(990, 0.16, 'square', 0.07, 1, 0.08); ruido(0.15, 0.12, 4000, 8000, 0.04); }
@@ -858,23 +864,72 @@ VISTAS.criadero = (div, idA) => {
   pinta();
   const t = setInterval(() => { if (VISTA !== 'criadero') return clearInterval(t); $$('#hvs .cuenta[data-t]').forEach(el => { const ms = +el.dataset.t - Date.now(); if (!/VENTA|RESERV/.test(el.textContent)) el.textContent = tiempo(ms); }); }, 1000);
 };
+/* eclosión: el huevo se va agrietando (5 fotogramas img/huevo/h0-h4), tiembla cada vez más y estalla */
+const HV_V = '?v=1';
 function eclosionar(c) {
-  const m = modal(`<div class="eclosion"><div class="flashE"></div>${ROBOT.huevo(null, { cls: 'listo' })}</div><h2 style="text-align:center;padding:0" id="eTit">Eclosionando…</h2><div id="eInfo"></div>`, { sinCerrar: true });
-  Son.estado();
+  const m = modal(`<div class="eclosion hvSec"><div class="flashE"></div><div class="hvAnim" id="hvAnim"><i class="hvLuz"></i>${[0, 1, 2, 3, 4].map(i => `<img src="img/huevo/h${i}.webp${HV_V}" alt="" class="f${i}${i ? '' : ' on'}" draggable="false">`).join('')}</div><canvas class="hvTrozos"></canvas></div>
+    <h2 style="text-align:center;padding:0" id="eTit">Eclosionando…</h2><div id="eInfo"></div>`, { sinCerrar: true, cls: 'eclModal' });
+  const an = $('#hvAnim', m), ec = $('.eclosion', m), fr = $$('img', an);
+  let resp = null, listoAnim = false;
+  const paso = (i, fuerza) => {
+    fr.forEach((f, j) => f.classList.toggle('on', j <= i));
+    an.style.setProperty('--luz', (i * 0.25).toFixed(2)); an.className = 'hvAnim t' + fuerza;
+    Son.grieta && Son.grieta(i); vib(20 + i * 25);
+    an.classList.remove('golpe'); void an.offsetWidth; an.classList.add('golpe');
+  };
+  Son.estado(); an.className = 'hvAnim t1';
+  setTimeout(() => paso(1, 1), 700);
+  setTimeout(() => paso(2, 2), 1400);
+  setTimeout(() => paso(3, 3), 2100);
+  setTimeout(() => { paso(4, 4); listoAnim = true; if (resp) estalla(); }, 2750);
   conSes('eclosionar', { id: c.id }).then(d => {
     if (!d.ok) { cerrarModal(); return toast(d.error, 'err'); }
+    resp = d; if (listoAnim) estalla();
+  });
+  function estalla() {
+    if (ec.classList.contains('boom')) return;
+    const n = resp.criatura, col = colClase(n.clase);
     setTimeout(() => {
-      const n = d.criatura, ec = $('.eclosion', m);
-      ec.style.setProperty('--cc', colClase(n.clase));
-      ec.insertAdjacentHTML('beforeend', ROBOT.svg(n.genes, { cls: 'nace' })); ec.classList.add('boom'); Son.eclosion(); celebrar(ec, colClase(n.clase)); vib([40, 60, 120]);
+      ec.style.setProperty('--cc', col);
+      trozosHuevo($('.hvTrozos', ec), an);
+      an.classList.add('fuera');
+      ec.insertAdjacentHTML('beforeend', ROBOT.svg(n.genes, { cls: 'nace' })); ec.classList.add('boom');
+      Son.eclosion(); celebrar(ec, col); vib([60, 40, 160]);
       Object.assign(c, n);
       $('#eTit').innerHTML = '¡Ha nacido ' + esc(nomCr(n)) + '!';
       $('#eInfo').innerHTML = `<div style="text-align:center;margin:8px 0">${claseHTML(n.clase)} ${purezaHTML(n.genes)}</div>${statsHTML(n.genes)}<div class="acciones" style="justify-content:center"><button class="btn" id="eVer">VER CRIATURA</button></div>`;
       $('#modal .mCerrar').classList.remove('oculto');
       $('#eVer').onclick = () => detalle(n.id);
       alCerrarModal = () => { if (VISTA === 'criadero' || VISTA === 'criaturas') ir(VISTA); };
-    }, 1600);
-  });
+    }, 380);
+  }
+}
+/* trozos de cáscara que salen volando al estallar */
+function trozosHuevo(cv, an) {
+  if (!cv) return;
+  const g = cv.getContext('2d'), dpr = Math.min(2, devicePixelRatio || 1), W = cv.width = cv.clientWidth * dpr, H = cv.height = cv.clientHeight * dpr;
+  const r = an.getBoundingClientRect(), b = cv.getBoundingClientRect(), cx = (r.left - b.left + r.width / 2) * dpr, cy = (r.top - b.top + r.height * .48) * dpr, R = (a, z) => a + Math.random() * (z - a);
+  const cols = ['#e9c9a4', '#d9ab80', '#c08a5e', '#f3dcc0', '#8a6a52'], P = [];
+  for (let i = 0; i < 38; i++) {
+    const a = R(0, 6.283), v = R(260, 760) * dpr, s = R(6, 22) * dpr, n = 3 + Math.floor(R(0, 3)), pts = [];
+    for (let k = 0; k < n; k++) { const aa = k / n * 6.283 + R(-.4, .4); pts.push([Math.cos(aa) * s * R(.5, 1), Math.sin(aa) * s * R(.5, 1)]); }
+    P.push({ x: cx + R(-40, 40) * dpr, y: cy + R(-60, 60) * dpr, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 200 * dpr, rot: R(0, 6), vr: R(-12, 12), pts, c: cols[i % 5], t: 0, vida: R(.9, 1.5) });
+  }
+  for (let i = 0; i < 70; i++) { const a = R(0, 6.283), v = R(200, 700) * dpr; P.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, vida: R(.4, .9), chispa: 1, c: i % 2 ? '#19ff6a' : '#b6ff3a' }); }
+  let ult = performance.now();
+  (function f(now) {
+    if (!cv.isConnected) return; const dt = Math.min(.05, (now - ult) / 1000); ult = now; g.clearRect(0, 0, W, H); let vivos = 0;
+    for (const p of P) {
+      p.t += dt; if (p.t > p.vida) continue; vivos++;
+      const a = Math.min(1, (p.vida - p.t) / .35);
+      p.vx *= .985; p.vy = p.vy * .985 + 900 * dpr * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.chispa) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = a; g.strokeStyle = p.c; g.lineWidth = 2.2 * dpr; g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - p.vx * .03, p.y - p.vy * .03); g.stroke(); continue; }
+      p.rot += p.vr * dt; g.globalCompositeOperation = 'source-over'; g.globalAlpha = a;
+      g.save(); g.translate(p.x, p.y); g.rotate(p.rot); g.beginPath(); p.pts.forEach((q, k) => k ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])); g.closePath();
+      g.fillStyle = p.c; g.fill(); g.strokeStyle = 'rgba(60,40,25,.6)'; g.lineWidth = 1.2 * dpr; g.stroke(); g.restore();
+    }
+    g.globalAlpha = 1; if (vivos) requestAnimationFrame(f); else g.clearRect(0, 0, W, H);
+  })(ult);
 }
 
 /* =========================================================
@@ -1070,7 +1125,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 42;   // subir este número (y version.json) en cada actualización
+const VERSION = 43;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();

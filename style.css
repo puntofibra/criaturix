@@ -1051,3 +1051,23 @@ a.btn{text-decoration:none}
 .campo.chk input{width:22px;height:22px;accent-color:var(--v);flex:0 0 auto}
 .campo.chk span{font-weight:700;color:var(--tx);font-size:15px}
 .campo.chk small{flex-basis:100%}
+
+/* ---------- eclosión con el huevo agrietándose ---------- */
+.hvSec{overflow:visible}
+.hvAnim{--luz:0;position:absolute;left:50%;top:50%;width:min(250px,62vw);aspect-ratio:501/587;translate:-50% -52%;z-index:2}
+.hvAnim img{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .25s}
+.hvAnim img.on{opacity:1}
+.hvAnim .hvLuz{position:absolute;left:12%;right:6%;top:5%;bottom:0;border-radius:50%;background:radial-gradient(closest-side,rgba(120,255,170,calc(var(--luz)*.9)),rgba(25,255,106,calc(var(--luz)*.45)) 55%,transparent);filter:blur(18px);transform:scale(calc(1 + var(--luz)*.5));transition:all .4s}
+.hvAnim.t1{animation:hvTiembla1 .5s ease-in-out infinite}
+.hvAnim.t2{animation:hvTiembla2 .35s ease-in-out infinite}
+.hvAnim.t3{animation:hvTiembla3 .22s ease-in-out infinite}
+.hvAnim.t4{animation:hvTiembla4 .1s linear infinite}
+.hvAnim.golpe img.on:last-of-type{filter:brightness(1.6) drop-shadow(0 0 18px #19ff6a)}
+.hvAnim img{transition:opacity .25s,filter .35s}
+@keyframes hvTiembla1{0%,100%{rotate:0deg}25%{rotate:-2deg}75%{rotate:2deg}}
+@keyframes hvTiembla2{0%,100%{rotate:0deg;translate:-50% -52%}25%{rotate:-4deg;translate:-51% -52%}75%{rotate:4deg;translate:-49% -52%}}
+@keyframes hvTiembla3{0%,100%{rotate:0deg;translate:-50% -52%}25%{rotate:-6deg;translate:-52% -53%}75%{rotate:6deg;translate:-48% -51%}}
+@keyframes hvTiembla4{0%{translate:-51% -52%;rotate:-3deg;scale:1.02}50%{translate:-49% -53%;rotate:3deg;scale:1.05}100%{translate:-51% -52%;rotate:-3deg;scale:1.02}}
+.hvAnim.fuera{animation:hvFuera .35s forwards}
+@keyframes hvFuera{to{scale:1.5;opacity:0;filter:brightness(4)}}
+.hvTrozos{position:absolute;inset:-30px -20px;width:calc(100% + 40px);height:calc(100% + 60px);pointer-events:none;z-index:4}
