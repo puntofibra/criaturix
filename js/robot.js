@@ -273,7 +273,7 @@ var ROBOT = (function () {
       '<radialGradient id="ha' + id + '" cx=".5" cy=".55" r=".5"><stop offset="0" stop-color="' + K.col + '" stop-opacity=".55"/><stop offset=".6" stop-color="' + K.col + '" stop-opacity=".18"/><stop offset="1" stop-color="' + K.col + '" stop-opacity="0"/></radialGradient></defs>' +
       '<ellipse cx="120" cy="206" rx="52" ry="7" fill="' + K.col + '" opacity=".3"/>' +
       '<ellipse class="hv-luz" cx="120" cy="118" rx="88" ry="104" fill="url(#ha' + id + ')"/>' +
-      '<g class="hv-cuerpo"><image href="img/huevo.webp?v=1" x="' + x.toFixed(1) + '" y="' + y + '" width="' + w.toFixed(1) + '" height="' + h + '"/></g></svg>';
+      '<g class="hv-cuerpo"><image href="img/huevo.webp?v=2" x="' + x.toFixed(1) + '" y="' + y + '" width="' + w.toFixed(1) + '" height="' + h + '"/></g></svg>';
   }
   return { svg: svg, huevo: huevo };
 })();
