@@ -60,7 +60,7 @@ var FUEGO = (function () {
     g.setTransform(d, 0, 0, d, 0, 0); g.clearRect(0, 0, innerWidth, innerHeight);
     if (t - tLista > .25) {   // refrescar qué criaturas se ven
       tLista = t;
-      var capa = document.querySelector('.cIntro, .finCx, .busca');   // con una pantalla encima, solo los efectos de esa pantalla
+      var capa = document.querySelector('.zoomCarta, .cIntro, .finCx, .busca');   // carta ampliada u otra pantalla encima: no se dibujan los efectos de detrás   // con una pantalla encima, solo los efectos de esa pantalla
       lista = Array.prototype.slice.call(document.querySelectorAll('svg.rb[data-fx]:not(.quieto)')).filter(function (v) { return capa ? capa.contains(v) : visible(v); }).slice(0, MAXR);
     }
     lista.forEach(function (svg) {

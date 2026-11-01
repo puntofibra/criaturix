@@ -178,14 +178,15 @@ var ROBOT = (function () {
     cromo: ['#4a515b', '#7d8792', '#cfe6ff'], cuantico: ['#5c8fa6', '#9fd9e8', '#e8fdff'], sombra: ['#130a19', '#2b1736', '#ff4fd8']
   };
   var OJO = { cx: 736, cy: 305, r: 80 };   // iris en el marco común
-  function parpado(cl, id) {
+  function parpado(cl, id, masc) {   // masc = máscara con la forma visible del ojo (img/ojos/m_<pieza>.png)
     var P = PARPADO[cl] || PARPADO.cromo, s = 160 / FR.w, X0 = 50, Y0 = 200 - FR.h * s;
     var cx = X0 + OJO.cx * s, cy = Y0 + OJO.cy * s, r = OJO.r * s, d = (3.6 + Math.random() * 3.4).toFixed(2), dl = (-Math.random() * 6).toFixed(2);
     var f = function (v) { return v.toFixed(1); }, st = ' style="--pd:' + d + 's;--pdl:' + dl + 's"', dob = Math.random() < .35 ? ' doble' : '';
-    return '<defs><clipPath id="pc' + id + '"><ellipse cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" rx="' + r.toFixed(1) + '" ry="' + (r * 1.02).toFixed(1) + '"/></clipPath>' +
+    var mx = X0 + (587 + 59) * s, my = Y0 + (133 + 82) * s, mw = 180 * s;
+    return '<defs><mask id="pc' + id + '" maskUnits="userSpaceOnUse" x="0" y="0" width="240" height="220"><image href="img/ojos/m_' + (masc || 'cuerpo_' + cl) + '.png?v=1" x="' + f(mx) + '" y="' + f(my) + '" width="' + f(mw) + '" height="' + f(mw) + '"/></mask>' +
       '<linearGradient id="pg' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + P[0] + '"/><stop offset=".72" stop-color="' + P[1] + '"/><stop offset=".84" stop-color="' + P[2] + '" stop-opacity=".5"/><stop offset=".92" stop-color="' + P[0] + '"/><stop offset="1" stop-color="#000" stop-opacity=".85"/></linearGradient>' +
       '<linearGradient id="pi' + id + '" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="' + P[0] + '"/><stop offset=".8" stop-color="' + P[1] + '"/><stop offset="1" stop-color="' + P[2] + '" stop-opacity=".4"/></linearGradient></defs>' +
-      '<g class="rb-parp' + dob + '" clip-path="url(#pc' + id + ')"' + st + '>' +
+      '<g class="rb-parp' + dob + '" mask="url(#pc' + id + ')"' + st + '>' +
       '<path class="sup" d="M' + f(cx - r * 1.1) + ' ' + f(cy - r * 1.25) + 'H' + f(cx + r * 1.1) + 'V' + f(cy + r * .35) + 'Q' + f(cx) + ' ' + f(cy + r * .72) + ' ' + f(cx - r * 1.1) + ' ' + f(cy + r * .35) + 'Z" fill="url(#pg' + id + ')"/>' +
       '<path class="inf" d="M' + f(cx - r * 1.1) + ' ' + f(cy + r * 1.15) + 'H' + f(cx + r * 1.1) + 'V' + f(cy + r * .3) + 'Q' + f(cx) + ' ' + f(cy + r * .1) + ' ' + f(cx - r * 1.1) + ' ' + f(cy + r * .3) + 'Z" fill="url(#pi' + id + ')"/></g>';
   }
@@ -260,16 +261,17 @@ var ROBOT = (function () {
       '<ellipse class="hv-aro a2" cx="122" cy="202" rx="48" ry="7" fill="none" stroke="' + K.col + '" stroke-width=".8" stroke-dasharray="3 6" opacity=".55"/></g>' +
       '<ellipse cx="124" cy="201" rx="54" ry="6.5" fill="url(#cs' + id + ')"/></g>' +
       '<g class="rb-cuerpo">' +
-      (pura ? '<g class="rb-fx">' + efectos + '</g>' + pieza('pura_' + cls, PURA[cls]) + parpado(cls, id) :
+      (pura ? '<g class="rb-fx">' + efectos + '</g>' + pieza('pura_' + cls, PURA[cls]) + parpado(cls, id, 'cuerpo_' + cls) :
       '<g class="rb-cola' + (COLA_FRENTE[pp.cola.c] && !v2('cola') ? ' fija' : '') + '">' + pieza('cola_' + (COLA[pp.cola.c] ? pp.cola.c + (v2('cola') ? '_2' : '') : cls), COLA[pp.cola.c] || COLA[cls]) + '</g>' +
       '<g class="rb-fx">' + efectos + '</g>' +
-      '<g class="rb-ant">' + pieza('antena_' + (ANTENA[pp.antenas.c] ? pp.antenas.c : cls), ANTENA[pp.antenas.c] || ANTENA[cls]) + '</g>' +
+      '<g class="rb-ant">' + pieza('antena_' + (ANTENA[pp.antenas.c] ? pp.antenas.c : cls) + '_atras', ANTENA[pp.antenas.c] || ANTENA[cls]) + '</g>' +
       
       '<image href="' + BASE + 'cuerpo_' + cls + '.webp?v=23" x="' + X0 + '" y="' + Y0.toFixed(1) + '" width="' + BW + '" height="' + BH.toFixed(1) + '"' + (tinte ? ' style="filter:' + tinte + '"' : '') + '/>' +
       (COLA_FRENTE[pp.cola.c] && !v2('cola') ? pieza('cola_' + pp.cola.c + '_frente', COLA[pp.cola.c]) : '') +
+      '<g class="rb-ant">' + pieza('antena_' + (ANTENA[pp.antenas.c] ? pp.antenas.c : cls) + '_frente', ANTENA[pp.antenas.c] || ANTENA[cls]) + '</g>' +
       ((pp.ojos.c !== cls || v2('ojos')) && CX.CLASES[pp.ojos.c] ? pieza('cara_ojo_' + pp.ojos.c + (v2('ojos') ? '_2' : ''), CARA.ojo) : '') +
       ((pp.boca.c !== cls || v2('boca')) && CX.CLASES[pp.boca.c] ? pieza('cara_boca_' + pp.boca.c + (v2('boca') ? '_2' : ''), CARA.boca) : '') +
-      parpado(CX.CLASES[pp.ojos.c] ? pp.ojos.c : cls, id) +
+      parpado(CX.CLASES[pp.ojos.c] ? pp.ojos.c : cls, id, (pp.ojos.c !== cls || v2('ojos')) && CX.CLASES[pp.ojos.c] ? 'cara_ojo_' + pp.ojos.c + (v2('ojos') ? '_2' : '') : 'cuerpo_' + cls) +
       '<g class="rb-cuerno">' + pieza('cuerno_' + (CUERNO[pp.cuerno.c] ? pp.cuerno.c + (v2('cuerno') ? '_2' : '') : cls), CUERNO[pp.cuerno.c] || CUERNO[cls]) + '</g>') +
       '</g></svg>';
   }
