@@ -1072,3 +1072,15 @@ a.btn{text-decoration:none}
 @keyframes hvFuera{to{scale:1.5;opacity:0;filter:brightness(4)}}
 .hvTrozos{position:absolute;inset:-30px -20px;width:calc(100% + 40px);height:calc(100% + 60px);pointer-events:none;z-index:4}
 #nav button{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+/* bases pro de criaturas y huevos */
+.rb .hv-aro{transform-box:fill-box;transform-origin:center}
+.rb .hv-aro.a1{animation:aroGira 7s linear infinite}
+.rb .hv-aro.a2{animation:aroGira 5s linear infinite reverse}
+@keyframes aroGira{to{stroke-dashoffset:-150}}
+.rb.huevo .hv-base{animation:hvBase 3s ease-in-out infinite;transform-origin:120px 204px}
+@keyframes hvBase{50%{transform:scaleX(.9);opacity:.85}}
+.rb.quieto .hv-aro{animation:none}
+.lu .rb-aros{display:none}   /* en combate ya está la plataforma */
+.rb .rb-sombra{animation:sombra2 3s ease-in-out infinite;transform-origin:122px 202px;opacity:1}
+@keyframes sombra2{50%{transform:scaleX(.9);opacity:.8}}
+.rb.quieto .rb-sombra{animation:none}
