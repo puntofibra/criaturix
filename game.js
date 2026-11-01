@@ -316,7 +316,7 @@ const ICO_SLOT = {   // iconos del tipo de pieza (esquina de la carta)
 };
 const ARTE_CORTE = { espalda: [20, 0, 420, 330] };   // recorte del cuerpo (marco 1024x907) para la espalda: los cañones
 function arteCarta(k) {
-  const c = CX.CLASES[k.clase] ? k.clase : 'cromo', v = '?v=11';
+  const c = CX.CLASES[k.clase] ? k.clase : 'cromo', v = '?v=12';
   let img;
   if (k.slot === 'espalda') {
     const [x, y, w, h] = ARTE_CORTE.espalda, esc = 100 / w;   // background que enseña la zona de los cañones
@@ -1045,7 +1045,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 40;   // subir este número (y version.json) en cada actualización
+const VERSION = 41;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();
