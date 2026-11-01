@@ -242,7 +242,7 @@ var ROBOT = (function () {
     var P = function (x, y) { return [X0 + x * s, Y0 + y * s]; };
     var tinte = TINTE[genes.col || 0];
     var pieza = function (k, box) { return '<image href="' + BASE + k + '.webp?v=23" x="' + (X0 + box[0] * s).toFixed(1) + '" y="' + (Y0 + box[1] * s).toFixed(1) + '" width="' + (box[2] * s).toFixed(1) + '" height="' + (box[3] * s).toFixed(1) + '"/>'; };
-    var ce = CX.CLASES[pp.espalda.c] ? pp.espalda.c : cls;
+    var ce = (CX.CLASES[pp.espalda.c] ? pp.espalda.c : cls) + (pp.espalda.v === 1 ? '2' : '');   // efecto de los tubos (variante 2 = otro efecto)
     var efectos = (TUBOS[cls] || TUBOS.plasma).map(function (t, i) {
       var p = P(t[0], t[1]);
       return '<g transform="translate(' + p[0].toFixed(1) + ' ' + p[1].toFixed(1) + ') rotate(' + t[2] + ')"><g class="rb-tubo"><circle r=".4" opacity="0"/><circle cy="-10" r=".4" opacity="0"/></g></g>';

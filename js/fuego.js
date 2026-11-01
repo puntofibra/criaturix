@@ -94,6 +94,24 @@ var FUEGO = (function () {
         g.globalAlpha = fade * bl; var rc = p.r * 1.3; g.drawImage(spr('#ffffff'), p.x - rc, p.y - rc, rc * 2, rc * 2);
         continue;
       }
+      if (p.anillo) {   // anillo que se expande perpendicular al tubo
+        var kk = 1 - k; g.globalCompositeOperation = 'lighter'; g.globalAlpha = k * .9; g.strokeStyle = p.c; g.lineWidth = Math.max(.6, p.r * .5 * k);
+        g.save(); g.translate(p.x, p.y); g.rotate(p.ang); g.beginPath(); g.ellipse(0, 0, p.r * (1 + kk * 1.2) * .45, p.r * (1 + kk * 2.2), 0, 0, 6.283); g.stroke(); g.restore();
+        continue;
+      }
+      if (p.hoja) {
+        p.rot += p.vr * dt; g.globalCompositeOperation = 'source-over'; g.globalAlpha = Math.min(1, k * 2);
+        g.save(); g.translate(p.x, p.y); g.rotate(p.rot); g.fillStyle = p.c; g.beginPath(); g.ellipse(0, 0, p.r, p.r * .45, 0, 0, 6.283); g.fill();
+        g.strokeStyle = '#1f6a2c'; g.lineWidth = .4 * p.r; g.beginPath(); g.moveTo(-p.r, 0); g.lineTo(p.r, 0); g.stroke(); g.restore();
+        continue;
+      }
+      if (p.orbe) {   // bola eléctrica con un pequeño arco que la rodea
+        g.globalCompositeOperation = 'lighter'; g.globalAlpha = Math.min(1, k * 1.5); var ro2 = p.r * (1 + .2 * Math.sin(p.l * 40));
+        g.drawImage(spr('#ffe03a'), p.x - ro2 * 2.2, p.y - ro2 * 2.2, ro2 * 4.4, ro2 * 4.4); g.drawImage(spr('#ffffff'), p.x - ro2 * .8, p.y - ro2 * .8, ro2 * 1.6, ro2 * 1.6);
+        g.strokeStyle = '#fff6a8'; g.lineWidth = .5 * p.r * .4; g.beginPath(); var a0 = p.l * 30; g.moveTo(p.x + Math.cos(a0) * ro2 * 1.6, p.y + Math.sin(a0) * ro2 * 1.6);
+        for (var q2 = 1; q2 < 5; q2++) { var aq = a0 + q2 * .6; g.lineTo(p.x + Math.cos(aq) * ro2 * (1.3 + R() * .6), p.y + Math.sin(aq) * ro2 * (1.3 + R() * .6)); } g.stroke();
+        continue;
+      }
       if (p.humo) {
         g.globalCompositeOperation = p.humo === 2 ? 'source-over' : 'lighter';
         var r = p.r * (1 + (1 - k) * p.cr); g.globalAlpha = Math.min(1, k * 1.6) * p.a;
@@ -191,6 +209,42 @@ var FUEGO = (function () {
         break;
       }
 
+      /* ---------- espaldas de la variante 2 ---------- */
+      case 'plasma2': {   // soplete: chorro de ascuas a presión + humo negro
+        glow('#ff7a2e', x + cs * 14 * u, y + sn * 14 * u, 28 * u, .6 + Math.sin(t * 30) * .15); glow('#fff2a0', x + cs * 4 * u, y + sn * 4 * u, 9 * u, .9);
+        for (var k2 = 0; k2 < 5; k2++) emite(st, { x: x, y: y, vx: (cs * rnd(130, 240) + rnd(-30, 30)) * u, vy: (sn * rnd(130, 240) + rnd(-30, 30)) * u, l: rnd(.3, .6), m: .6, r: rnd(1.2, 2.4) * u, c: R() < .4 ? '#fff2a0' : R() < .5 ? '#ffb02e' : '#ff4d2e', rayo: 1, gy: 60 * u });
+        if (R() < .35) emite(st, { x: x + cs * 14 * u, y: y + sn * 14 * u, vx: (cs * rnd(20, 40) + rnd(-8, 8)) * u, vy: (sn * rnd(20, 40)) * u - 14 * u, l: rnd(1, 1.6), m: 1.6, r: rnd(3, 5) * u, cr: 2.6, c: '#2a2026', a: .55, humo: 2, gy: -12 * u, dr: .98 });
+        break;
+      }
+      case 'voltio2': {   // orbes de plasma eléctrico que salen chisporroteando
+        glow('#ffe03a', x, y, 18 * u, .5 + Math.sin(t * 9) * .2);
+        if (R() < .16) emite(st, { x: x, y: y, vx: (cs * rnd(30, 55)) * u, vy: (sn * rnd(30, 55)) * u - 6 * u, l: rnd(1, 1.6), m: 1.6, r: rnd(3.6, 5.4) * u, c: '#fff6a8', tw: 1, dr: .985, orbe: 1 });
+        if (R() < .25) emite(st, { x: x, y: y, vx: (cs * rnd(60, 120) + rnd(-60, 60)) * u, vy: (sn * rnd(60, 120) + rnd(-60, 60)) * u, l: .18, m: .18, r: .5 * u, c: '#ffe03a', rayo: 1 });
+        break;
+      }
+      case 'bio2': {   // esporas y hojitas que salen flotando
+        glow('#b6ff3a', x, y, 18 * u, .45 + Math.sin(t * 2) * .12);
+        if (R() < .4) emite(st, { x: x, y: y, vx: (cs * rnd(18, 36) + rnd(-12, 12)) * u, vy: (sn * rnd(18, 36)) * u - 10 * u, l: rnd(1.4, 2.4), m: 2.4, r: rnd(1.8, 3.2) * u, c: R() < .5 ? '#d8ffb0' : '#19ff6a', tw: 1, dr: .99, gy: -6 * u });
+        if (R() < .1) emite(st, { x: x, y: y, vx: (cs * rnd(20, 40)) * u, vy: (sn * rnd(20, 40)) * u, l: rnd(1.6, 2.4), m: 2.4, r: rnd(4, 6) * u, c: '#4ad66a', hoja: 1, rot: R() * 6, vr: rnd(-4, 4), dr: .985, gy: 8 * u });
+        break;
+      }
+      case 'cromo2': {   // vapor blanco a presión con alguna chispa metálica
+        glow('#cfe6ff', x, y, 8 * u, .3);
+        if (R() < .8) emite(st, { x: x + cs * 3 * u, y: y + sn * 3 * u, vx: (cs * rnd(70, 110) + rnd(-12, 12)) * u, vy: (sn * rnd(70, 110) + rnd(-12, 12)) * u, l: rnd(.5, .9), m: .9, r: rnd(2.5, 4) * u, cr: 3.5, c: '#e8f2ff', a: .4, humo: 2, dr: .95, gy: -20 * u });
+        if (R() < .08) emite(st, { x: x, y: y, vx: (cs * rnd(80, 140) + rnd(-40, 40)) * u, vy: (sn * rnd(80, 140)) * u, l: .35, m: .35, r: .5 * u, c: '#ffffff', rayo: 1, gy: 200 * u });
+        break;
+      }
+      case 'cuantico2': {   // anillos de energía que salen del tubo y se expanden
+        glow('#00e5ff', x, y, 16 * u, .5 + Math.sin(t * 4) * .15); if (R() < .3) emite(st, { x: x, y: y, vx: (cs * rnd(20, 50) + rnd(-15, 15)) * u, vy: (sn * rnd(20, 50) + rnd(-15, 15)) * u, l: rnd(.5, .9), m: .9, r: rnd(1, 1.8) * u, c: '#8af9ff', tw: 1 });
+        st.n -= dt; if (st.n <= 0) { st.n = rnd(.22, .4); emite(st, { x: x, y: y, vx: cs * 40 * u, vy: sn * 40 * u, l: 1.2, m: 1.2, r: 4.5 * u, c: R() < .5 ? '#00e5ff' : '#8af9ff', anillo: 1, ang: ang, dr: .99 }); }
+        break;
+      }
+      case 'sombra2': {   // niebla oscura espesa con ojitos brillantes que aparecen y se apagan
+        if (R() < .6) emite(st, { x: x + cs * 4 * u, y: y + sn * 4 * u, vx: (cs * rnd(10, 22) + rnd(-6, 6)) * u, vy: (sn * rnd(10, 22)) * u - 3 * u, l: rnd(1.4, 2.2), m: 2.2, r: rnd(4, 6.5) * u, cr: 2.4, c: R() < .5 ? '#3a0f58' : '#140420', a: .85, humo: 2, gy: -6 * u, dr: .985 });
+        if (R() < .14) emite(st, { x: x + cs * rnd(10, 26) * u, y: y + sn * rnd(10, 26) * u + rnd(-6, 6) * u, vx: 0, vy: -4 * u, l: rnd(.6, 1), m: 1, r: 1.1 * u, c: '#ff4fd8', tw: 1, dr: 1 });
+        glow('#b14bff', x + cs * 8 * u, y + sn * 8 * u, 20 * u, .5); glow('#ff4fd8', x, y, 6 * u, .7);
+        break;
+      }
       default: {   // sombra: llamas finas + humo morado
         if (R() < .5) emite(st, { x: x + cs * 6 * u, y: y + sn * 6 * u, vx: (cs * rnd(15, 30) + rnd(-6, 6)) * u, vy: (sn * rnd(15, 30) + rnd(-6, 6)) * u - 5 * u, l: rnd(1.1, 1.8), m: 1.8, r: rnd(2.5, 4) * u, cr: 2.2, c: '#8a4ac9', a: .55, humo: 1, gy: -8 * u, dr: .985 });
         particulas(st, dt);
