@@ -27,15 +27,43 @@ const Combate = (() => {
   /* ---------- arena: buscar rival (espera a jugadores reales y, si no hay, bot) ---------- */
   function buscar() {
     if (buscando) return buscando;
-    let cancel = false, primera = true;
-    const t0 = Date.now();
-    const m = modal(`<div class="buscaR"><div class="radar"></div><h2 style="padding:0">BUSCANDO RIVAL</h2><p class="nota" id="bsTxt">Buscando jugadores conectados…</p>
-      <div class="acciones" style="justify-content:center"><button class="btn sec" id="bsNo">CANCELAR</button></div></div>`, { sinCerrar: true });
+    let cancel = false, primera = true, msgI = 0;
+    const t0 = Date.now(), lider = (SES.perfil.equipo || []).map(mia).filter(Boolean)[0];
+    const blips = Array.from({ length: 9 }, () => { const an = Math.random() * 360, r = 18 + Math.random() * 28; return { an, r }; });
+    const o = document.createElement('div'); o.className = 'busca';
+    o.innerHTML = `<div class="bsFondo"></div>
+      <div class="bsCaja">
+        <div class="bsCab"><small>ARENA · TIEMPO REAL</small><h2>BUSCANDO RIVAL</h2></div>
+        <div class="bsRadar">
+          <i class="bsAro a1"></i><i class="bsAro a2"></i><i class="bsAro a3"></i><i class="bsAro a4"></i><i class="bsCruz"></i><i class="bsMarcas"></i>
+          <i class="bsBarrido"></i>
+          ${blips.map(b => `<i class="bsBlip" style="--x:${(50 + Math.cos((b.an - 90) * Math.PI / 180) * b.r).toFixed(1)}%;--y:${(50 + Math.sin((b.an - 90) * Math.PI / 180) * b.r).toFixed(1)}%;--d:${(b.an / 360 * 2.4).toFixed(2)}s"></i>`).join('')}
+          <i class="bsOnda"></i><i class="bsOnda o2"></i>
+          <div class="bsYo">${lider ? ROBOT.svg(lider.genes, { cls: 'quieto' }) : ''}</div>
+        </div>
+        <div class="bsEstado"><span class="bsPunto"></span><b id="bsTxt">Escaneando la red…</b><em id="bsSeg">0:00</em></div>
+        <button class="btn sec" id="bsNo">CANCELAR</button>
+      </div>`;
+    document.body.appendChild(o); requestAnimationFrame(() => o.classList.add('on'));
+    const MSG = ['Escaneando la red…', 'Buscando jugadores conectados…', 'Buscando rivales de tu nivel…', 'Preparando la arena…'];
     Son.estado();
+    const ping = setInterval(() => { if (!o.isConnected) return clearInterval(ping); Son.ping && Son.ping(); }, 2400);
+    const reloj = setInterval(() => {
+      if (!o.isConnected) return clearInterval(reloj);
+      const sg = Math.floor((Date.now() - t0) / 1000); $('#bsSeg', o).textContent = Math.floor(sg / 60) + ':' + String(sg % 60).padStart(2, '0');
+      if (sg && sg % 2 === 0) { msgI = (msgI + 1) % MSG.length; const el = $('#bsTxt', o); el.classList.remove('cambia'); void el.offsetWidth; el.classList.add('cambia'); el.textContent = MSG[msgI]; }
+    }, 1000);
+    const quitar = () => { clearInterval(ping); clearInterval(reloj); o.classList.remove('on'); setTimeout(() => o.remove(), 300); };
     buscando = new Promise(fin => {
       const acabar = () => { buscando = null; fin(); };
-      $('#bsNo', m).onclick = () => {
-        cancel = true; Son.click(); cerrarModal();
+      const encontrado = d => {
+        Son.moneda(); vib([30, 40, 30]); clearInterval(ping); clearInterval(reloj);
+        o.classList.add('hallado');
+        $('.bsCaja', o).insertAdjacentHTML('beforeend', `<div class="bsHallado"><small>¡RIVAL ENCONTRADO!</small><b>${esc(d.meta.rival)}</b></div>`);
+        setTimeout(() => { quitar(); acabar(); entrar(d); }, 1300);
+      };
+      $('#bsNo', o).onclick = () => {
+        cancel = true; Son.click(); quitar();
         if (VISTA === 'combate') { S = null; ir('arena'); }
         conSes('nobuscar').then(d => { if (d.ok && d.vista) entrar(d); });
         acabar();
@@ -45,9 +73,8 @@ const Combate = (() => {
         conSes('buscar', { nueva: primera ? 1 : 0 }).then(d => {
           primera = false;
           if (cancel) return;
-          if (!d.ok) { cerrarModal(); toast(d.error, 'err'); return acabar(); }
-          if (d.vista) { Son.moneda(); vib([30, 40, 30]); acabar(); return entrar(d); }
-          const el = $('#bsTxt'); if (el) el.textContent = 'Buscando jugadores conectados… ' + Math.floor((Date.now() - t0) / 1000) + ' s';
+          if (!d.ok) { quitar(); toast(d.error, 'err'); return acabar(); }
+          if (d.vista) return encontrado(d);
           setTimeout(paso, 900);
         });
       };

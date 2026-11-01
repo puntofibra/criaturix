@@ -177,6 +177,11 @@ const Son = (() => {
       [[57, 0], [53, 0.35], [52, 0.7]].forEach(([n, a]) => voz(mtof(n), t + a, 0.6, { tipo: 'sawtooth', vol: 0.08, f0: 1400, f1: 300, det: [-12, 12] }));
       voz(mtof(45), t + 1.05, 2.2, { tipo: 'sawtooth', vol: 0.1, f0: 900, f1: 120, det: [-15, 0, 15] }); bombo(t + 1.05, master, 0.8);
     },
+    ping() {   // pitido de sonar al pasar el barrido
+      if (!ac) return; const t = ac.currentTime;
+      [0, 0.22, 0.44].forEach((dl, i) => voz(1320, t + dl, 0.5, { tipo: 'sine', vol: 0.07 / (i + 1), f0: 4000 }));
+      voz(660, t, 0.35, { tipo: 'triangle', vol: 0.03 });
+    },
     cuenta() { if (!ac) return; voz(mtof(88 + Math.floor(Math.random() * 3) * 2), ac.currentTime, 0.07, { tipo: 'square', vol: 0.04, f0: 5000 }); },
     vs() { ruido(0.8, 0.45, 200, 4000); tono(55, 1, 'sawtooth', 0.22, 1); tono(110, 0.6, 'square', 0.1, 1, 0.5); tono(880, 0.4, 'square', 0.06, 1, 0.55); },
     ronda() { tono(660, 0.08, 'square', 0.07); tono(990, 0.16, 'square', 0.07, 1, 0.08); ruido(0.15, 0.12, 4000, 8000, 0.04); }
@@ -1040,7 +1045,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 38;   // subir este número (y version.json) en cada actualización
+const VERSION = 39;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();
