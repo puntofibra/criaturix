@@ -627,13 +627,13 @@ const ICO = {
 };
 const UIV = '?v=2', imU = (f, c) => `<img class="la ${c}" src="img/ui/${f}.webp${UIV}" alt="" draggable="false">`;
 const LOSA_FONDO = { aventura: 1, arena: 1, criaturas: 1, criadero: 1, mercado: 1, ranking: 1 };   // fondos ilustrados img/ui/fondo_<vista>.webp
-const COPA_SVG = '<svg class="lCopa" viewBox="0 0 64 64"><defs><linearGradient id="gCopa" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6b0"/><stop offset=".45" stop-color="#ffd23f"/><stop offset="1" stop-color="#b86a00"/></linearGradient></defs><path fill="none" stroke="url(#gCopa)" stroke-width="4" d="M18 10H9v4c0 6 4 10 10 10M46 10h9v4c0 6-4 10-10 10"/><path fill="url(#gCopa)" d="M17 5h30v11c0 9-6.5 16-15 16S17 25 17 16z"/><path fill="url(#gCopa)" d="M28 31h8v9h-8zM22 40h20l3 8H19z"/><rect x="15" y="48" width="34" height="9" rx="2.5" fill="url(#gCopa)"/><path d="M23 9q1 13 8 17" stroke="#fff" stroke-width="2.4" fill="none" opacity=".55" stroke-linecap="round"/><path d="M32 10.5l2.3 4.7 5.1.7-3.7 3.6.9 5.1-4.6-2.4-4.6 2.4.9-5.1-3.7-3.6 5.1-.7z" fill="#fffbe0"/></svg>';
+const COPA_SVG = '<img class="lCopa" src="img/ui/copa.webp?v=1" alt="" draggable="false">';
 const LOSA_ARTE = {
   aventura: `<i class="lSuelo"></i>${imU('cx_bio', 'solo')}<svg class="lPin" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.6" fill="#05060f"/></svg>`,
   arena: `<i class="lSuelo"></i>${imU('cx_plasma', 'izq')}${imU('cx_sombra', 'der')}<i class="lVs">VS</i>`,
   criaturas: `<i class="lSuelo"></i>${imU('cx_cromo', 't3')}${imU('cx_voltio', 't2')}${imU('cx_cuantico', 't1')}`,
   criadero: `<i class="lSuelo"></i>${imU('huevo', 'huevo')}<i class="lCor c1">♥</i><i class="lCor c2">♥</i><i class="lCor c3">♥</i>`,
-  mercado: `<i class="lSuelo"></i>${imU('cx_cromo', 'merc')}<span class="lPrecio">€</span><i class="lMon m1"></i><i class="lMon m2"></i><i class="lMon m3"></i>`,
+  mercado: `<i class="lSuelo"></i>${imU('cx_cromo', 'merc')}<img class="lPrecio" src="img/ui/moneda.webp?v=1" alt="" draggable="false"><img class="lMon m1" src="img/ui/moneda.webp?v=1" alt=""><img class="lMon m2" src="img/ui/moneda.webp?v=1" alt=""><img class="lMon m3" src="img/ui/moneda.webp?v=1" alt="">`,
   ranking: `<i class="lSuelo"></i>${COPA_SVG}<i class="lEst s1">★</i><i class="lEst s2">★</i><i class="lEst s3">★</i>`
 };
 function losa(v, titulo, sub, col, ico, extra, badge) {
@@ -1045,7 +1045,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 39;   // subir este número (y version.json) en cada actualización
+const VERSION = 40;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();

@@ -1003,3 +1003,9 @@ a.btn{text-decoration:none}
 .bsHallado b{font:900 clamp(26px,8vw,40px) Orbitron,sans-serif;color:#fff;text-shadow:0 0 18px var(--m),0 0 4px #fff}
 .busca.hallado .bsRadar,.busca.hallado .bsEstado,.busca.hallado #bsNo,.busca.hallado .bsCab{opacity:.15;transition:opacity .3s}
 .busca.hallado .bsBarrido{animation-duration:.5s}
+
+/* copa y moneda ilustradas en los botones */
+.losa img.lCopa{height:88%;bottom:8%;right:20%;filter:drop-shadow(0 0 16px rgba(255,210,63,.55)) drop-shadow(0 6px 8px rgba(0,0,0,.6))}
+.losa img.lPrecio{width:38%;height:auto;left:2%;top:2%;background:none;box-shadow:none;border-radius:0;filter:drop-shadow(0 0 12px rgba(255,210,63,.6)) drop-shadow(0 4px 6px rgba(0,0,0,.5));animation:lMoneda 3s ease-in-out infinite}
+.losa img.lMon{width:16px;height:auto;background:none;box-shadow:none;filter:drop-shadow(0 0 6px rgba(255,210,63,.7))}
+.losa img.lMon.m1{width:20px}
