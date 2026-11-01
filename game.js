@@ -996,8 +996,22 @@ const Mercado = (() => {
     const nombre = c.tipo === 'huevo' ? 'Huevo #' + c.num : nomCr(c);
     const m = modal(`<div class="pago">${dibujo(c)}<h2 style="padding:0">${esc(nombre)}</h2><div class="imp">${euros(c.precio)} €</div>
       <ol class="pasos"><li>Pulsa <b>«Pagar con myPOS»</b>: se abrirá la página de pago de Futurmovil con el importe ya puesto.</li><li>Paga con tu tarjeta, Apple Pay o Google Pay.</li><li>Cuando Futurmovil confirme el pago, <b>${c.tipo === 'huevo' ? 'el huevo' : 'la criatura'} aparecerá en tu cuenta</b>. Mientras, queda reservado para ti.</li></ol>
+      ${(SES.perfil.creditos || 0) >= c.precio ? `<button class="btn grande bloque" id="bCred">PAGAR CON CRÉDITOS · ${fmt(c.precio)}</button><p class="nota" style="margin:6px 0 12px;text-align:center">Tienes <b style="color:var(--c)">${fmt(SES.perfil.creditos)} créditos</b> · es tuya al momento</p>` : ''}
       <button class="btn oro grande bloque" id="bPagar">PAGAR CON myPOS · ${euros(c.precio)} €</button>
       <p class="nota" style="margin-top:10px">¿Dudas? Escríbenos por <a class="enlace" target="_blank" rel="noopener" href="https://wa.me/${CFG.WHATSAPP}">WhatsApp</a>.</p></div>`);
+    const bc = $('#bCred', m);
+    if (bc) bc.onclick = async e => {
+      if (!await confirmar('Pagar con créditos', `Se descontarán <b>${fmt(c.precio)} créditos</b> y ${c.tipo === 'huevo' ? 'el huevo será tuyo' : 'la criatura será tuya'} al momento.`, 'Pagar')) return;
+      ocupado(bc, true);
+      conSes('comprarCred', { id: c.id }).then(d => {
+        ocupado(bc, false);
+        if (!d.ok) return toast(d.error, 'err');
+        aplicaPerfil(d.perfil); Son.gana();
+        if (DATA && DATA.criaturas && d.criatura) DATA.criaturas.push(d.criatura);
+        modal(`<div class="pago"><h2 style="padding:0">¡ES TUYA!</h2>${dibujo(d.criatura || c)}<p class="nota">Pagado con créditos. Ya la tienes en tu cuenta.</p><div class="acciones" style="justify-content:center"><button class="btn oro" onclick="cerrarModal()">GENIAL</button></div></div>`);
+        lista = lista.filter(x => x.id !== c.id); pinta();
+      });
+    };
     $('#bPagar', m).onclick = e => {
       const w = window.open('', '_blank'); ocupado(e.target, true);
       conSes('comprar', { id: c.id }).then(d => {
@@ -1138,7 +1152,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 52;   // subir este número (y version.json) en cada actualización
+const VERSION = 53;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();
