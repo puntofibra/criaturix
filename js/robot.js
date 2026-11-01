@@ -234,7 +234,10 @@ var ROBOT = (function () {
     if (!genes || !genes.p) return '';
     var cls = CX.CLASES[genes.c] ? genes.c : 'cromo', K = C(cls), id = 'r' + (++n);
     var pp = {}; CX.SLOTS.forEach(function (s) { pp[s] = CX.parteGen(genes.p[s][0]); });
-    var pura = PURA[cls] && CX.SLOTS.every(function (s) { return pp[s].c === cls; });
+    var V2 = { ojos: 1 };   // piezas que ya tienen dibujo de la variante 2 (img/piezas/<pieza>_<clase>_2.webp)
+    var v2 = function (sl) { return V2[sl] && pp[sl].v === 1; };
+    // la imagen «pura» solo vale si todas las piezas son de su clase y de la variante 1
+    var pura = PURA[cls] && CX.SLOTS.every(function (s) { return pp[s].c === cls && !v2(s); });
     var BW = 160, s = BW / FR.w, BH = FR.h * s, X0 = 50, Y0 = 200 - BH;
     var P = function (x, y) { return [X0 + x * s, Y0 + y * s]; };
     var tinte = TINTE[genes.col || 0];
@@ -264,7 +267,7 @@ var ROBOT = (function () {
       
       '<image href="' + BASE + 'cuerpo_' + cls + '.webp?v=23" x="' + X0 + '" y="' + Y0.toFixed(1) + '" width="' + BW + '" height="' + BH.toFixed(1) + '"' + (tinte ? ' style="filter:' + tinte + '"' : '') + '/>' +
       (COLA_FRENTE[pp.cola.c] ? pieza('cola_' + pp.cola.c + '_frente', COLA[pp.cola.c]) : '') +
-      (pp.ojos.c !== cls && CX.CLASES[pp.ojos.c] ? pieza('cara_ojo_' + pp.ojos.c, CARA.ojo) : '') +
+      ((pp.ojos.c !== cls || v2('ojos')) && CX.CLASES[pp.ojos.c] ? pieza('cara_ojo_' + pp.ojos.c + (v2('ojos') ? '_2' : ''), CARA.ojo) : '') +
       (pp.boca.c !== cls && CX.CLASES[pp.boca.c] ? pieza('cara_boca_' + pp.boca.c, CARA.boca) : '') +
       parpado(CX.CLASES[pp.ojos.c] ? pp.ojos.c : cls, id) +
       '<g class="rb-cuerno">' + pieza('cuerno_' + (CUERNO[pp.cuerno.c] ? pp.cuerno.c : cls), CUERNO[pp.cuerno.c] || CUERNO[cls]) + '</g>') +
