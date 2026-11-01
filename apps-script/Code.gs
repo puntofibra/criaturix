@@ -93,7 +93,8 @@ const AJUSTES = [
   ['precioMin', 1, 'Precio mínimo de venta en euros'],
   ['arenaEspera', 5, 'Segundos que la arena espera a un jugador real antes de jugar contra un bot'],
   ['arenaRepetir', 2, 'Partidas que tienen que pasar antes de volver a enfrentarse al mismo jugador real'],
-  ['turnoSeg', 40, 'Segundos para elegir cartas en los combates entre dos jugadores'],
+  ['turnoSeg', 40, 'Segundos para elegir cartas en los combates de la arena'],
+  ['botsRanking', 0, 'Los bots de la arena salen y puntúan en el ranking (al activarlo empiezan de cero)'],
   ['aviso', '', 'Aviso que ven los jugadores en el inicio (vacío = nada)']
 ];
 function hojaConfig_() {
@@ -106,7 +107,7 @@ function cfg_() {
   const c = CacheService.getScriptCache(), v = c.get('cfg'); if (v) return JSON.parse(v);
   const o = {}; AJUSTES.forEach(a => o[a[0]] = a[1]);
   tabla_(hojaConfig_(), 2).forEach(r => { if (r[0]) o[r[0]] = r[1]; });
-  ['horasEclosion', 'maxCrias', 'costeCriaCreditos', 'comision', 'energiaDia', 'chipsInicio', 'pvpGana', 'precioMin', 'arenaEspera', 'arenaRepetir', 'turnoSeg'].forEach(k => o[k] = Number(o[k]) || 0);
+  ['horasEclosion', 'maxCrias', 'costeCriaCreditos', 'comision', 'energiaDia', 'chipsInicio', 'pvpGana', 'precioMin', 'arenaEspera', 'arenaRepetir', 'turnoSeg', 'botsRanking'].forEach(k => o[k] = Number(o[k]) || 0);
   o.costeCria = String(o.costeCria).split(/[,;\s]+/).map(Number).filter(n => n >= 0);
   c.put('cfg', JSON.stringify(o), 300);
   return o;
@@ -131,7 +132,7 @@ function num_(v) { return Number(v) || 0; }
 /* ---------------- cuentas ---------------- */
 function usuarios_() { const sh = hojaU_(); return { sh, rows: tabla_(sh, CAB_U.length) }; }
 function buscar_(rows, col, valor) { valor = String(valor || '').toLowerCase(); if (!valor) return -1; for (let i = 0; i < rows.length; i++) if (String(rows[i][col]).toLowerCase() === valor) return i; return -1; }
-function usuarioLibre_(u) { u = String(u || '').trim(); if (!usuarioValido_(u)) return false; return buscar_(usuarios_().rows, U.Usuario, u) < 0 && u.toLowerCase() !== 'tienda'; }
+function usuarioLibre_(u) { u = String(u || '').trim(); if (!usuarioValido_(u)) return false; return buscar_(usuarios_().rows, U.Usuario, u) < 0 && u.toLowerCase() !== 'tienda' && !esBot_(u); }
 function nuevaSesion_(sh, i, row) {
   if (!(String(row[U.Token]).length >= 30 && num_(row[U.TokenExpira]) > Date.now())) row[U.Token] = Utilities.getUuid() + Utilities.getUuid().slice(0, 8);   // misma sesión en móvil y PC
   row[U.TokenExpira] = String(Date.now() + 1000 * 60 * 60 * 24 * 90);
@@ -172,7 +173,7 @@ function registrar_(p) {
   return conLock_(() => {
     const f = usuarios_();
     if (buscar_(f.rows, U.Email, email) >= 0) throw new Error('Ya existe una cuenta con ese correo');
-    if (buscar_(f.rows, U.Usuario, usuario) >= 0 || usuario.toLowerCase() === 'tienda') throw new Error('Ese nombre de usuario ya está cogido');
+    if (buscar_(f.rows, U.Usuario, usuario) >= 0 || usuario.toLowerCase() === 'tienda' || esBot_(usuario)) throw new Error('Ese nombre de usuario ya está cogido');
     const row = filaNueva_(usuario, email), sal = Utilities.getUuid();
     row[U.Sal] = sal; row[U.Hash] = hashPass_(pass, sal);
     darIniciales_(row);
@@ -200,7 +201,7 @@ function google_(p) {
     const usuario = String(p.usuario || '').trim();
     if (!usuario) return { ok: true, necesitaUsuario: true, email, sugerido: (info.given_name || email.split('@')[0]).replace(/[^A-Za-z0-9_.\-]/g, '').slice(0, 16) };
     if (!usuarioValido_(usuario)) throw new Error('El nombre de usuario debe tener de 3 a 16 letras, números, punto, guion o guion bajo');
-    if (buscar_(f.rows, U.Usuario, usuario) >= 0 || usuario.toLowerCase() === 'tienda') throw new Error('Ese nombre de usuario ya está cogido');
+    if (buscar_(f.rows, U.Usuario, usuario) >= 0 || usuario.toLowerCase() === 'tienda' || esBot_(usuario)) throw new Error('Ese nombre de usuario ya está cogido');
     const row = filaNueva_(usuario, email); row[U.Google] = info.sub;
     darIniciales_(row);
     f.sh.appendRow(row);
@@ -262,8 +263,9 @@ function yo_(p) {
   const mias = deUsuario_(cr.rows, uid).map(i => pub_(cr.rows[i], false));
   return { ok: true, perfil: perfil_(s.row), criaturas: mias, aviso: String(cfg_().aviso || ''), reglas: reglasPub_() };
 }
-function reglasPub_() { const c = cfg_(); return { horasEclosion: c.horasEclosion, maxCrias: c.maxCrias, costeCria: c.costeCria, costeCriaCreditos: c.costeCriaCreditos, comision: c.comision, precioMin: c.precioMin, energiaDia: c.energiaDia }; }
+function reglasPub_() { const c = cfg_(); return { horasEclosion: c.horasEclosion, maxCrias: c.maxCrias, costeCria: c.costeCria, costeCriaCreditos: c.costeCriaCreditos, comision: c.comision, precioMin: c.precioMin, energiaDia: c.energiaDia, turnoSeg: c.turnoSeg }; }
 function renombrar_(p) {
+  throw new Error('Los nombres de las criaturas no se pueden cambiar');
   const s = sesion_(p.token), nombre = String(p.nombre || '').trim().slice(0, 20).replace(/[<>]/g, '');
   return conLock_(() => {
     const cr = criaturas_(), i = buscar_(cr.rows, C.Id, p.id);
@@ -438,7 +440,8 @@ function movimientos_(p) {
 function ranking_() {
   const c = CacheService.getScriptCache(), v = c.get('ranking'); if (v) return JSON.parse(v);
   const rows = usuarios_().rows.map(r => ({ usuario: String(r[U.Usuario]), elo: num_(r[U.Elo]) || 1000, v: num_(r[U.Victorias]), d: num_(r[U.Derrotas]), etapa: num_(r[U.Etapa]) }));
-  const out = { ok: true, arena: rows.filter(r => r.v + r.d > 0).sort((a, b) => b.elo - a.elo).slice(0, 50), aventura: rows.filter(r => r.etapa > 0).sort((a, b) => b.etapa - a.etapa).slice(0, 50) };
+  const bots = num_(cfg_().botsRanking) ? botsTabla_().rows.map(r => ({ usuario: String(r[0]), elo: num_(r[1]) || 1000, v: num_(r[2]), d: num_(r[3]), etapa: 0 })).filter(r => r.v + r.d > 0) : [];
+  const out = { ok: true, arena: rows.filter(r => r.v + r.d > 0).concat(bots).sort((a, b) => b.elo - a.elo).slice(0, 50), aventura: rows.filter(r => r.etapa > 0).sort((a, b) => b.etapa - a.etapa).slice(0, 50) };
   c.put('ranking', JSON.stringify(out), 60);
   return out;
 }
@@ -502,7 +505,7 @@ function apuntaRival_(uid, rival, nombreBot) {
 }
 function ultimos_(lista, n) { return n > 0 ? lista.slice(-n) : []; }
 function puedenJugar_(a, b, n) { return ultimos_(histArena_(a).r, n).indexOf(b) < 0 && ultimos_(histArena_(b).r, n).indexOf(a) < 0; }
-const COLA_FRESCA = 3500, ABANDONO_MS = 35000;
+const COLA_FRESCA = 9000, ABANDONO_MS = 35000;
 function buscarRival_(p) {
   const uid = uidRapido_(p.token), cf = cfg_();
   freno_('busca_' + uid, 60, 60);
@@ -514,11 +517,11 @@ function buscarRival_(p) {
     if (ref && ref.pvp) { const B = cGet_('pb_' + ref.pvp); if (B && !B.fin) { ping_(ref.pvp, ref.lado); return pvpSalida_(B, ref.lado); } }
     const todos = cGet_('cola') || [], yo0 = todos.find(x => x.uid === uid);
     const cola = todos.filter(x => x.uid !== uid && ahora - x.t < COLA_FRESCA);
-    let yo = !p.nueva && yo0 && ahora - yo0.t < COLA_FRESCA ? yo0 : null;
+    let yo = yo0 && ((p.sid && yo0.sid === p.sid) || (!p.nueva && ahora - yo0.t < COLA_FRESCA)) ? yo0 : null;   // misma búsqueda: no se reinicia la espera
     if (!yo) {
       const s = sesion_(p.token), eq = equipoDe_(s.row, criaturas_());
       if (eq.length < 3) throw new Error('Necesitas 3 criaturas en tu equipo. Ve a «Equipo» y elígelas.');
-      yo = { uid, nom: String(s.row[U.Usuario]), elo: num_(s.row[U.Elo]) || 1000, eq, t0: ahora };
+      yo = { uid, sid: String(p.sid || ''), nom: String(s.row[U.Usuario]), elo: num_(s.row[U.Elo]) || 1000, eq, t0: ahora };
     }
     yo.t = ahora;
     // 1. otro jugador real esperando
@@ -538,7 +541,7 @@ function buscarRival_(p) {
       return pvpSalida_(B, 0);
     }
     // 2. nadie en el tiempo de espera: bot
-    if (ahora - yo.t0 >= cf.arenaEspera * 1000) { cPut_('cola', cola, 600); return combateBot_(yo); }
+    if (p.ya || ahora - yo.t0 >= cf.arenaEspera * 1000) { cPut_('cola', cola, 600); return combateBot_(yo); }
     // 3. sigo esperando
     cola.push(yo); cPut_('cola', cola, 600);
     return { ok: true, esperando: 1, quedan: Math.max(0, yo.t0 + cf.arenaEspera * 1000 - ahora) };
@@ -553,17 +556,60 @@ function noBuscar_(p) {
     return { ok: true };
   });
 }
+/* ---------- bots de la arena: plantilla fija de jugadores (hoja «Bots») ----------
+   Cada bot sale 3 o 4 veces al día como máximo (al azar) y al día siguiente vuelve a estar disponible.
+   Su equipo siempre es el mismo (sale de su nombre). Si «botsRanking» = 1, sus partidas cuentan en el ranking. */
+const CAB_BOT = ['Nombre', 'Elo', 'Victorias', 'Derrotas', 'Creado'];
+function hashN_(t) { let h = 2166136261; t = String(t); for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function botsTabla_() { const sh = hoja_('Bots', CAB_BOT); return { sh, rows: tabla_(sh, CAB_BOT.length) }; }
+function esBot_(u) { u = String(u || '').toLowerCase(); return botsTabla_().rows.some(r => String(r[0]).toLowerCase() === u); }
+function botsNuevos_(n, cogidos) {
+  const b = botsTabla_(), ya = {}; b.rows.forEach(r => ya[String(r[0]).toLowerCase()] = 1);
+  const nuevos = [];
+  for (let k = 0; k < n; k++) {
+    const nom = nombreBot_([], Object.assign({}, cogidos, ya)); ya[nom.toLowerCase()] = 1;
+    const row = [nom, 1000, 0, 0, new Date()]; b.sh.appendRow(row); nuevos.push(row);
+  }
+  return b.rows.concat(nuevos);
+}
+function elegirBot_(yo) {
+  const cogidos = {}; usuarios_().rows.forEach(r => cogidos[String(r[U.Usuario]).toLowerCase()] = 1);
+  let rows = botsTabla_().rows;
+  if (rows.length < 50) rows = botsNuevos_(60 - rows.length, cogidos);
+  const pr = PropertiesService.getScriptProperties(), hoy = hoy_();
+  let uso = {}; try { const o = JSON.parse(pr.getProperty('botuso') || '{}'); if (o.d === hoy) uso = o.u || {}; } catch (e) {}
+  const recientes = ultimos_(histArena_(yo.uid).n, 4);
+  const libres = rows.filter(r => { const n = String(r[0]); return (uso[n] || 0) < 3 + hashN_(n + hoy) % 2 && recientes.indexOf(n) < 0 && !cogidos[n.toLowerCase()]; });
+  let elegido;
+  if (libres.length) elegido = libres.map(r => ({ r, d: Math.abs((num_(r[1]) || 1000) - yo.elo) + Math.random() * 220 })).sort((a, b) => a.d - b.d)[0].r;
+  else elegido = botsNuevos_(5, cogidos).slice(-1)[0];
+  const nom = String(elegido[0]); uso[nom] = (uso[nom] || 0) + 1;
+  pr.setProperty('botuso', JSON.stringify({ d: hoy, u: uso }));
+  return { nom, elo: num_(elegido[1]) || 1000 };
+}
 function combateBot_(yo) {
-  const h = histArena_(yo.uid), cogidos = {}; usuarios_().rows.forEach(r => cogidos[String(r[U.Usuario]).toLowerCase()] = 1);
-  const nom = nombreBot_(h.n, cogidos), base = Math.floor(Math.random() * 1e9);
+  const bot = elegirBot_(yo), base = hashN_(bot.nom);
   const tope = Math.max(60, num_(PropertiesService.getScriptProperties().getProperty('num')));
-  const rival = [0, 1, 2].map(i => ({ id: 'b' + i, nom: 'Criaturix #' + (1 + Math.floor(Math.random() * tope)), genes: CX.genesAzar(base + i * 7919, null, 0.4 + Math.random() * 0.35) }));
-  const meta = { modo: 'pvp', rival: nom, eloRival: Math.max(0, yo.elo + Math.round((Math.random() - 0.5) * 140)), mult: 1 };
-  const B = MOTOR.crear([yo.eq, rival], { mult: [1, 1], nombres: [yo.nom, nom] });
-  B.meta = meta; B.t = Date.now();
+  const rival = [0, 1, 2].map(i => ({ id: 'b' + i, nom: 'Criaturix #' + (1 + (hashN_(bot.nom + i) % tope)), genes: CX.genesAzar(base + i * 7919, null, 0.4 + (base % 35) / 100) }));
+  const meta = { modo: 'pvp', rival: bot.nom, eloRival: bot.elo, mult: 1 };
+  const B = MOTOR.crear([yo.eq, rival], { mult: [1, 1], nombres: [yo.nom, bot.nom] });
+  B.meta = meta; B.t = Date.now(); B.bot = bot.nom;
   guardarCombate_(yo.uid, B);
-  apuntaRival_(yo.uid, 'bot', nom);
+  apuntaRival_(yo.uid, 'bot', bot.nom);
   return { ok: true, meta, vista: MOTOR.vista(B, 0) };
+}
+/* apunta el resultado del bot (solo si los bots puntúan en el ranking) */
+function apuntaBot_(nom, resJugador, dEloJugador) {
+  if (!nom || !num_(cfg_().botsRanking)) return;
+  const b = botsTabla_(), i = buscar_(b.rows, 0, nom); if (i < 0) return;
+  const r = b.rows[i];
+  r[1] = Math.max(0, (num_(r[1]) || 1000) - dEloJugador);
+  if (resJugador === 'gana') r[3] = num_(r[3]) + 1; else if (resJugador === 'pierde') r[2] = num_(r[2]) + 1;
+  guarda_(b.sh, i, r);
+}
+function reiniciarBots_() {
+  const b = botsTabla_(); if (!b.rows.length) return;
+  b.sh.getRange(2, 2, b.rows.length, 3).setValues(b.rows.map(() => [1000, 0, 0]));
 }
 
 /* ---------- partida entre dos jugadores reales (la misma para los dos) ---------- */
@@ -654,7 +700,7 @@ function combateTurno_(p) {
   if (parseInt(p.ronda, 10) !== B.ronda) return { ok: true, ev: [], vista: MOTOR.vista(B, 0), meta: B.meta, repetido: 1 };
   const ev = MOTOR.ronda(B, p.jug || {}, MOTOR.ia(B, 1, B.meta.modo === 'pve' ? 0.6 + B.meta.etapa / 40 : 1));
   let premio = null;
-  if (B.fin) premio = B.premio = terminar_(uid, B.fin, B.meta, B.ronda);
+  if (B.fin) { premio = B.premio = terminar_(uid, B.fin, B.meta, B.ronda); if (B.bot && premio) apuntaBot_(B.bot, B.fin, premio.elo); }
   guardarCombate_(uid, B);
   return { ok: true, ev, vista: MOTOR.vista(B, 0), meta: B.meta, premio };
 }
@@ -669,6 +715,7 @@ function combateRendirse_(p) {
   });
   if (!B || B.fin) return { ok: true };
   B.fin = 'pierde'; B.premio = terminar_(uid, 'pierde', B.meta, B.ronda); guardarCombate_(uid, B);
+  if (B.bot && B.premio) apuntaBot_(B.bot, 'pierde', B.premio.elo);
   return { ok: true, premio: B.premio };
 }
 /* res = 'gana' | 'pierde' | 'empate' visto desde este jugador */
@@ -871,8 +918,10 @@ const ADMIN_OPS = {
   ajustes: () => ({ ok: true, lista: tabla_(hojaConfig_(), 3).filter(r => r[0]).map(r => ({ k: r[0], v: r[1], ayuda: r[2] })) }),
   guardarAjustes: p => {
     const sh = hojaConfig_(), rows = tabla_(sh, 3), vals = p.valores || {};
+    const antes = rows.find(r => r[0] === 'botsRanking');
+    if (Object.prototype.hasOwnProperty.call(vals, 'botsRanking') && Number(vals.botsRanking) === 1 && !(antes && Number(antes[1]) === 1)) reiniciarBots_();
     rows.forEach((r, i) => { if (Object.prototype.hasOwnProperty.call(vals, r[0])) sh.getRange(i + 2, 2).setValue(String(vals[r[0]]).slice(0, 300)); });
-    CacheService.getScriptCache().remove('cfg');
+    CacheService.getScriptCache().removeAll(['cfg', 'ranking']);
     return { ok: true };
   },
   totp: () => { const pr = PropertiesService.getScriptProperties(); if (!pr.getProperty('totp')) pr.setProperty('totp', base32Nuevo_()); return { ok: true, url: otpauth_(), secreto: pr.getProperty('totp') }; },
