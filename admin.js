@@ -84,12 +84,24 @@ const Admin = (() => {
   /* ---------------- panel ---------------- */
   function panel() {
     const m = modal(`<div class="adm"><div class="tit" style="margin-top:0"><h1 style="font-size:20px">⚙ ADMINISTRACIÓN</h1></div>
-      <div class="pestanas" id="aPest">${[['pedidos', 'PEDIDOS'], ['resumen', 'RESUMEN'], ['crear', 'CREAR'], ['tienda', 'TIENDA'], ['jugadores', 'JUGADORES'], ['ajustes', 'AJUSTES']].map(([k, n]) => `<button data-k="${k}" class="${pest === k ? 'on' : ''}">${n}<span id="b_${k}"></span></button>`).join('')}</div>
+      <div class="pestanas" id="aPest">${[['pedidos', 'PEDIDOS'], ['hoy', 'HOY'], ['resumen', 'RESUMEN'], ['crear', 'CREAR'], ['tienda', 'TIENDA'], ['jugadores', 'JUGADORES'], ['ajustes', 'AJUSTES']].map(([k, n]) => `<button data-k="${k}" class="${pest === k ? 'on' : ''}">${n}<span id="b_${k}"></span></button>`).join('')}</div>
       <div id="aCont"></div></div>`, { cls: 'ancha', alCerrar: () => { if (VISTA === 'inicio' || VISTA === 'mercado') ir(VISTA); } });
     $$('#aPest button', m).forEach(b => b.onclick = () => { pest = b.dataset.k; Son.click(); $$('#aPest button').forEach(x => x.classList.toggle('on', x === b)); pinta(); });
     pinta();
   }
-  function pinta() { const c = $('#aCont'); if (!c) return; c.innerHTML = '<p class="nota">Cargando…</p>'; ({ pedidos, resumen, crear, tienda, jugadores, ajustes, seguridad })[pest](c); }
+  function pinta() { const c = $('#aCont'); if (!c) return; c.innerHTML = '<p class="nota">Cargando…</p>'; ({ pedidos, hoy, resumen, crear, tienda, jugadores, ajustes, seguridad })[pest](c); }
+
+  function hoy(c) {
+    adm('hoy').then(d => {
+      if (!d.ok) return;
+      const f = new Date(d.fecha + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+      const hora = t => new Date(t).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      c.innerHTML = `<p class="nota" style="margin-bottom:10px">Actividad de hoy, <b style="color:var(--tx)">${esc(f)}</b>. Solo jugadores reales (los bots no cuentan). Se pone a cero cada día a medianoche.</p>
+        <div class="kpis">${[['Jugadores que han jugado', d.jugadores], ['Partidas jugadas', d.partidas], ['Han iniciado sesión', d.entraron], ['Cuentas nuevas', d.nuevos]].map(([n, v]) => `<div class="kpi"><b>${fmt(v)}</b><small>${n.toUpperCase()}</small></div>`).join('')}</div>
+        <div class="panel" style="margin-top:14px;overflow-x:auto"><h3 style="font-size:14px;margin-bottom:10px">PARTIDAS DE CADA JUGADOR</h3>${d.lista.length ? `<table class="tabla"><tr><th>Jugador</th><th>Partidas</th><th>Aventura</th><th>Arena</th><th>Ganadas</th><th>Perdidas</th><th>Chips</th><th>Horario</th></tr>
+        ${d.lista.map(x => `<tr><td><b>${esc(x.usuario)}</b></td><td><b style="color:var(--v)">${x.partidas}</b></td><td>${x.aventura}</td><td>${x.arena}${x.arenaReal ? ` <small style="color:var(--m)">(${x.arenaReal} vs jugador)</small>` : ''}</td><td style="color:var(--v)">${x.gana}</td><td style="color:var(--r)">${x.pierde}</td><td style="color:var(--o)">${fmt(x.chips)}</td><td style="white-space:nowrap">${hora(x.primera)} – ${hora(x.ultima)}</td></tr>`).join('')}</table>` : '<p class="nota">Hoy todavía no ha jugado nadie.</p>'}</div>`;
+    });
+  }
 
   function resumen(c) {
     adm('resumen').then(d => {
