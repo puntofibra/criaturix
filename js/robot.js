@@ -249,7 +249,13 @@ var ROBOT = (function () {
       '<linearGradient id="hz' + id + '" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fff"/><stop offset=".3" stop-color="#8af9ff" stop-opacity=".9"/><stop offset="1" stop-color="#00e5ff" stop-opacity="0"/></linearGradient>' +
       '<linearGradient id="fs' + id + '" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ffd0f6"/><stop offset=".4" stop-color="#ff4fd8"/><stop offset="1" stop-color="#b14bff" stop-opacity=".1"/></linearGradient><filter id="bl' + id + '" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="1.6"/></filter></defs>';
     return '<svg class="rb ' + (opts.cls || '') + '" data-fx="' + ce + '" viewBox="0 0 240 220" overflow="visible" xmlns="http://www.w3.org/2000/svg">' + defs +
-      '<ellipse class="rb-sombra" cx="122" cy="203" rx="70" ry="7" fill="' + K.col + '" opacity=".25"/>' +
+      '<radialGradient id="cs' + id + '" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".8"/><stop offset=".5" stop-color="#000" stop-opacity=".4"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>' +
+      '<radialGradient id="cp' + id + '" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="' + K.col + '" stop-opacity=".3"/><stop offset=".7" stop-color="' + K.col + '" stop-opacity=".07"/><stop offset="1" stop-color="' + K.col + '" stop-opacity="0"/></radialGradient>' +
+      // base: halo de luz de su clase, aros finos que giran y sombra de contacto oscura
+      '<g class="rb-sombra"><g class="rb-aros"><ellipse cx="122" cy="202" rx="80" ry="13" fill="url(#cp' + id + ')"/>' +
+      '<ellipse class="hv-aro a1" cx="122" cy="202" rx="62" ry="9" fill="none" stroke="' + K.col2 + '" stroke-width="1.1" stroke-dasharray="46 14 6 14" opacity=".7"/>' +
+      '<ellipse class="hv-aro a2" cx="122" cy="202" rx="48" ry="7" fill="none" stroke="' + K.col + '" stroke-width=".8" stroke-dasharray="3 6" opacity=".55"/></g>' +
+      '<ellipse cx="124" cy="201" rx="54" ry="6.5" fill="url(#cs' + id + ')"/></g>' +
       '<g class="rb-cuerpo">' +
       (pura ? '<g class="rb-fx">' + efectos + '</g>' + pieza('pura_' + cls, PURA[cls]) + parpado(cls, id) :
       '<g class="rb-cola' + (COLA_FRENTE[pp.cola.c] ? ' fija' : '') + '">' + pieza('cola_' + (COLA[pp.cola.c] ? pp.cola.c : cls), COLA[pp.cola.c] || COLA[cls]) + '</g>' +
@@ -271,7 +277,13 @@ var ROBOT = (function () {
     var h = 172, w = h * 600 / 839, x = 120 - w / 2, y = 202 - h;
     return '<svg class="rb huevo ' + (opts.cls || '') + '" viewBox="0 0 240 220" overflow="visible" xmlns="http://www.w3.org/2000/svg"><defs>' +
       '<radialGradient id="ha' + id + '" cx=".5" cy=".55" r=".5"><stop offset="0" stop-color="' + K.col + '" stop-opacity=".55"/><stop offset=".6" stop-color="' + K.col + '" stop-opacity=".18"/><stop offset="1" stop-color="' + K.col + '" stop-opacity="0"/></radialGradient></defs>' +
-      '<ellipse cx="120" cy="206" rx="52" ry="7" fill="' + K.col + '" opacity=".3"/>' +
+      '<radialGradient id="hs' + id + '" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".75"/><stop offset=".55" stop-color="#000" stop-opacity=".35"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>' +
+      '<radialGradient id="hp' + id + '" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="' + K.col + '" stop-opacity=".35"/><stop offset=".7" stop-color="' + K.col + '" stop-opacity=".08"/><stop offset="1" stop-color="' + K.col + '" stop-opacity="0"/></radialGradient>' +
+      // base holográfica: halo de luz, sombra de contacto y dos anillos finos que giran
+      '<g class="hv-base"><ellipse cx="120" cy="204" rx="64" ry="12" fill="url(#hp' + id + ')"/>' +
+      '<ellipse class="hv-aro a1" cx="120" cy="204" rx="50" ry="8" fill="none" stroke="' + K.col2 + '" stroke-width="1.2" stroke-dasharray="40 12 6 12" opacity=".75"/>' +
+      '<ellipse class="hv-aro a2" cx="120" cy="204" rx="38" ry="6" fill="none" stroke="' + K.col + '" stroke-width=".8" stroke-dasharray="3 6" opacity=".6"/>' +
+      '<ellipse cx="120" cy="203" rx="30" ry="4.5" fill="url(#hs' + id + ')"/></g>' +
       '<ellipse class="hv-luz" cx="120" cy="118" rx="88" ry="104" fill="url(#ha' + id + ')"/>' +
       '<g class="hv-cuerpo"><image href="img/huevo.webp?v=2" x="' + x.toFixed(1) + '" y="' + y + '" width="' + w.toFixed(1) + '" height="' + h + '"/></g></svg>';
   }
