@@ -1,5 +1,5 @@
-const CACHE = 'criaturix-v45';
-const ASSETS = ['./', 'index.html', 'style.css?v=29', 'js/fx.js?v=2', 'js/arena.js?v=2', 'game.js?v=28', 'combate.js?v=8', 'admin.js?v=4', 'js/datos.js?v=1', 'js/robot.js?v=21', 'js/fuego.js?v=4', 'js/qrcode.min.js?v=1',
+const CACHE = 'criaturix-v46';
+const ASSETS = ['./', 'index.html', 'style.css?v=29', 'js/fx.js?v=2', 'js/arena.js?v=2', 'game.js?v=29', 'combate.js?v=8', 'admin.js?v=4', 'js/datos.js?v=1', 'js/robot.js?v=21', 'js/fuego.js?v=4', 'js/qrcode.min.js?v=1',
   'manifest.json?v=2', 'img/logo.webp', 'img/icon-192.png?v=2', 'img/icon-512.png?v=2', 'img/icon-180.png?v=2', 'favicon.ico?v=2'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

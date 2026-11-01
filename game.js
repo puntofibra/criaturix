@@ -232,7 +232,7 @@ const Son = (() => {
 /* =========================================================
    API Y SESIÓN
    ========================================================= */
-let SES = load('ses', null), DATA = { criaturas: [], reglas: {}, aviso: '' }, VISTA = '', trasSesion = null;
+let SES = load('ses', null), DATA = (SES && load('data', null)) || { criaturas: [], reglas: {}, aviso: '' }, VISTA = '', trasSesion = null;
 function api(accion, datos) {
   return fetch(CFG.API, { method: 'POST', body: JSON.stringify(Object.assign({ accion }, datos || {})) })
     .then(r => r.json())
@@ -250,8 +250,13 @@ function aplicaPerfil(p) {
 function refrescar() {
   return conSes('yo').then(d => {
     if (!d.ok) return d;
-    DATA.criaturas = d.criaturas; DATA.reglas = d.reglas; DATA.aviso = d.aviso;
-    aplicaPerfil(d.perfil); return d;
+    const antes = DATA.cargado;
+    DATA.criaturas = d.criaturas; DATA.reglas = d.reglas; DATA.aviso = d.aviso; DATA.cargado = true;
+    store('data', { criaturas: d.criaturas, reglas: d.reglas, aviso: d.aviso });   // para enseñarlas al instante la próxima vez
+    aplicaPerfil(d.perfil);
+    // la pantalla se dibujó antes de que llegaran los datos: se vuelve a pintar
+    if (!antes && ['inicio', 'criaturas', 'criadero', 'equipo'].includes(VISTA) && $('#modal').classList.contains('oculto')) ir(VISTA, undefined, true);
+    return d;
   });
 }
 function pintaTop() {
@@ -271,7 +276,7 @@ function entrarSesion(d) {
 }
 function cerrarSesion(silencio) {
   if (SES && !silencio) api('salir', { token: SES.token });
-  SES = null; store('ses', null); DATA = { criaturas: [], reglas: {}, aviso: '' };
+  SES = null; store('ses', null); store('data', null); DATA = { criaturas: [], reglas: {}, aviso: '' };
   ir('login');
 }
 function mia(id) { return DATA.criaturas.find(c => c.id === id); }
@@ -445,10 +450,10 @@ document.addEventListener('click', e => { if (e.target.closest('.bPower')) { e.p
    NAVEGACIÓN
    ========================================================= */
 const VISTAS = {};
-function ir(v, arg) {
+function ir(v, arg, silencio) {
   if (v !== 'login' && !SES) v = 'login';
   if (VISTA === 'combate' && v !== 'combate' && window.Combate && Combate.activo()) { if (!Combate.salirOk()) return; }
-  VISTA = v; Son.click(); Son.modo(v === 'combate' ? 'batalla' : 'menu');
+  VISTA = v; if (!silencio) Son.click(); Son.modo(v === 'combate' ? 'batalla' : 'menu');
   const conBarras = v !== 'login' && v !== 'combate';
   $('#top').classList.toggle('oculto', !conBarras); $('#nav').classList.toggle('oculto', !conBarras);
   $$('#nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v || (b.dataset.v === 'combatir' && ['aventura', 'arena', 'ranking', 'combatir'].includes(v))));
@@ -716,7 +721,7 @@ VISTAS.criaturas = div => {
     let l = DATA.criaturas.slice().sort((a, b) => b.creada - a.creada);
     if (filtroCr.tipo === 'venta') l = l.filter(c => c.estado); else if (filtroCr.tipo !== 'todas') l = l.filter(c => c.tipo === filtroCr.tipo);
     if (filtroCr.clase) l = l.filter(c => c.clase === filtroCr.clase);
-    $('#lista').innerHTML = l.map(c => tcHTML(c)).join('') || `<div class="vacio" style="grid-column:1/-1">No hay nada por aquí.</div>`;
+    $('#lista').innerHTML = l.map(c => tcHTML(c)).join('') || `<div class="vacio" style="grid-column:1/-1">${DATA.cargado || DATA.criaturas.length ? 'No hay nada por aquí.' : 'Cargando tus criaturas…'}</div>`;
     $$('#lista .tc').forEach(t => t.onclick = () => detalle(t.dataset.id));
   }
   $$('#fTipo .chip').forEach(b => b.onclick = () => { filtroCr.tipo = b.dataset.k; $$('#fTipo .chip').forEach(x => x.classList.toggle('on', x === b)); Son.click(); pinta(); });
@@ -1131,7 +1136,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 45;   // subir este número (y version.json) en cada actualización
+const VERSION = 46;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();
@@ -1157,7 +1162,6 @@ function arrancar() {
   ir('inicio');
   refrescar().then(d => {
     if (!d || !d.ok) return;
-    if (VISTA === 'inicio') ir('inicio');
     conSes('encurso').then(r => { if (r.ok && r.combate) Combate.reanudar(r.combate); });
   });
 }
