@@ -41,7 +41,7 @@ const ACCIONES = {
   recuperar: p => recuperar_(p), restablecer: p => restablecer_(p),
   yo: p => yo_(p), renombrar: p => renombrar_(p), equipo: p => equipo_(p),
   criar: p => criar_(p), eclosionar: p => eclosionar_(p),
-  mercado: p => mercado_(p), vender: p => vender_(p), retirar: p => retirar_(p), comprar: p => comprar_(p),
+  mercado: p => mercado_(p), vender: p => vender_(p), retirar: p => retirar_(p), comprar: p => comprar_(p), comprarCred: p => comprarCred_(p),
   recargar: p => recargar_(p), cancelar: p => cancelarPedido_(p), pedidos: p => misPedidos_(p), movimientos: p => movimientos_(p),
   ranking: p => ranking_(p),
   combate: p => combateInicio_(p), turno: p => combateTurno_(p), rendirse: p => combateRendirse_(p), encurso: p => combateEnCurso_(p),
@@ -94,6 +94,7 @@ const AJUSTES = [
   ['arenaEspera', 5, 'Segundos que la arena espera a un jugador real antes de jugar contra un bot'],
   ['arenaRepetir', 2, 'Partidas que tienen que pasar antes de volver a enfrentarse al mismo jugador real'],
   ['turnoSeg', 40, 'Segundos para elegir cartas en los combates de la arena'],
+  ['reponer', 1, 'Al venderse algo de la tienda se vuelve a poner a la venta otro igual (los huevos, con genes nuevos)'],
   ['botsRanking', 0, 'Los bots de la arena salen y puntúan en el ranking (al activarlo empiezan de cero)'],
   ['aviso', '', 'Aviso que ven los jugadores en el inicio (vacío = nada)']
 ];
@@ -107,7 +108,7 @@ function cfg_() {
   const c = CacheService.getScriptCache(), v = c.get('cfg'); if (v) return JSON.parse(v);
   const o = {}; AJUSTES.forEach(a => o[a[0]] = a[1]);
   tabla_(hojaConfig_(), 2).forEach(r => { if (r[0]) o[r[0]] = r[1]; });
-  ['horasEclosion', 'maxCrias', 'costeCriaCreditos', 'comision', 'energiaDia', 'chipsInicio', 'pvpGana', 'precioMin', 'arenaEspera', 'arenaRepetir', 'turnoSeg', 'botsRanking'].forEach(k => o[k] = Number(o[k]) || 0);
+  ['horasEclosion', 'maxCrias', 'costeCriaCreditos', 'comision', 'energiaDia', 'chipsInicio', 'pvpGana', 'precioMin', 'arenaEspera', 'arenaRepetir', 'turnoSeg', 'botsRanking', 'reponer'].forEach(k => o[k] = Number(o[k]) || 0);
   o.costeCria = String(o.costeCria).split(/[,;\s]+/).map(Number).filter(n => n >= 0);
   c.put('cfg', JSON.stringify(o), 300);
   return o;
@@ -388,6 +389,48 @@ function comprar_(p) {
         htmlBody: mail_('<b>' + s.row[U.Usuario] + '</b> quiere comprar <b>' + nombreDe_(r) + '</b> (' + r[C.Tipo] + ') por <b>' + euros_(importe) + ' €</b>.<br>Vendedor: ' + (String(r[C.Dueno]) === TIENDA ? 'Tienda oficial' : r[C.DuenoNombre]) + '<br>Pedido: ' + id + '<p>Cuando recibas el pago en myPOS, confírmalo en el panel de administración.</p><p><a style="color:#00e5ff" href="' + WEB + '">' + WEB + '</a></p>') });
     } catch (e) {}
     return { ok: true, pedido: { id, importe, url: urlPago_(importe) } };
+  });
+}
+/* repone en la tienda lo que se acaba de vender (si está activado en ajustes) */
+function reponer_(r, precio) {
+  if (!cfg_().reponer) return;
+  const huevo = r[C.Tipo] === 'huevo', g = huevo ? CX.genesAzar(Math.floor(Math.random() * 1e9), null, 0.5) : genes_(r);
+  if (!g || !precio) return;
+  crearCriatura_({ dueno: TIENDA, duenoNombre: 'Tienda oficial', tipo: huevo ? 'huevo' : 'criatura', genes: g, estado: 'venta', precio, eclosion: huevo ? Date.now() : '', origen: 'Tienda' });
+}
+/* compra al momento pagando con créditos (1 crédito = 1 céntimo) */
+function comprarCred_(p) {
+  const s0 = sesion_(p.token);
+  freno_('compra_' + s0.row[U.Id], 8, 600);
+  return conLock_(() => {
+    const s = sesion_(p.token), uid = String(s.row[U.Id]), f = { sh: s.sh, rows: s.rows }, b = s.i;
+    const cr = criaturas_(), i = buscar_(cr.rows, C.Id, p.id);
+    if (i < 0) throw new Error('Ya no está disponible');
+    const r = cr.rows[i];
+    if (r[C.Estado] !== 'venta') throw new Error('Lo siento, otra persona se te ha adelantado');
+    if (String(r[C.Dueno]) === uid) throw new Error('Es tuya');
+    const importe = num_(r[C.Precio]), saldo = num_(f.rows[b][U.Creditos]);
+    if (saldo < importe) throw new Error('No tienes créditos suficientes: necesitas ' + importe + ' y tienes ' + saldo);
+    const vendedor = String(r[C.Dueno]), cf = cfg_(), id = nuevoId_('PD-'), comprador = f.rows[b][U.Usuario];
+    f.rows[b][U.Creditos] = saldo - importe; guarda_(f.sh, b, f.rows[b]);
+    let paraVendedor = 0;
+    if (vendedor !== TIENDA) {
+      const iv = buscar_(f.rows, U.Id, vendedor);
+      if (iv >= 0) {
+        paraVendedor = Math.floor(importe * cf.comision / 100);
+        f.rows[iv][U.Creditos] = num_(f.rows[iv][U.Creditos]) + paraVendedor;
+        quitarDeEquipo_(f.rows[iv], String(r[C.Id])); guarda_(f.sh, iv, f.rows[iv]);
+        mov_(vendedor, f.rows[iv][U.Usuario], 'Venta de ' + nombreDe_(r) + ' a ' + comprador, paraVendedor, 0, id);
+      }
+    }
+    const vendNom = vendedor === TIENDA ? TIENDA : r[C.DuenoNombre];
+    const rTienda = vendedor === TIENDA ? r.slice() : null;
+    r[C.Dueno] = uid; r[C.DuenoNombre] = comprador; r[C.Estado] = ''; r[C.Precio] = ''; guarda_(cr.sh, i, r);
+    hoja_('Pedidos', CAB_P).appendRow([id, new Date(), uid, comprador, vendedor, vendNom, String(r[C.Id]), r[C.Tipo], importe, 'pagado', new Date(), 'Pagado con créditos' + (paraVendedor ? ' · vendedor recibe ' + paraVendedor : '')]);
+    mov_(uid, comprador, 'Compra de ' + nombreDe_(r) + ' con créditos', -importe, 0, id);
+    if (rTienda) reponer_(rTienda, importe);
+    CacheService.getScriptCache().remove('mercado');
+    return { ok: true, perfil: perfil_(f.rows[b]), criatura: pub_(r, false) };
   });
 }
 const PACKS_CREDITOS = [500, 1000, 2500, 5000, 10000];   // créditos (1 crédito = 1 céntimo)
@@ -838,6 +881,7 @@ const ADMIN_OPS = {
     const r = cr.rows[j], f = usuarios_(), ib = buscar_(f.rows, U.Id, x[P.IdComprador]);
     if (ib < 0) throw new Error('El comprador ya no existe');
     const vendedor = String(x[P.IdVendedor]), cf = cfg_();
+    if (vendedor === TIENDA) reponer_(r.slice(), num_(x[P.Importe]));
     r[C.Dueno] = String(x[P.IdComprador]); r[C.DuenoNombre] = f.rows[ib][U.Usuario]; r[C.Estado] = ''; r[C.Precio] = '';
     guarda_(cr.sh, j, r);
     let paraVendedor = 0;
