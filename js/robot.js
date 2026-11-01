@@ -193,7 +193,7 @@ var ROBOT = (function () {
   var PURA = {"sombra":[-112,-130,1217,1037],"cuantico":[-100,-141,1190,1068],"cromo":[-114,-127,1234,1018],"bio":[-113,-112,1197,1003],"voltio":[-100,-127,1219,1017],"plasma":[-102,-127,1217,1018]};   // criatura pura entera (todas las piezas de su clase)
   var COLA_FRENTE = { cuantico: 1 };   // colas con una parte que va por delante de la pata
   var COLA = {"plasma":[-101,32,214,614],"voltio":[-99,-1,194,608],"bio":[-113,-26,219,671],"cromo":[-113,28,232,576],"cuantico":[-100,447,490,480],"sombra":[-112,-108,295,725]};   // colas nuevas en el marco común (x, y, ancho, alto)
-  var CARA = { ojo: [587, 133, 307, 307], boca: [624, 396, 363, 305] };
+  var CARA = { ojo: [587, 133, 307, 307], boca: [672, 379, 313, 308] };
   var TUBOS = {   // boca de los 3 tubos de cada cuerpo (x, y en el marco, ángulo: 0 = arriba)
     plasma:   [[100, 262, -55], [180, 135, -35], [290, 82, -12]],
     voltio:   [[100, 262, -55], [180, 135, -35], [290, 82, -12]],
@@ -238,7 +238,7 @@ var ROBOT = (function () {
     var BW = 160, s = BW / FR.w, BH = FR.h * s, X0 = 50, Y0 = 200 - BH;
     var P = function (x, y) { return [X0 + x * s, Y0 + y * s]; };
     var tinte = TINTE[genes.col || 0];
-    var pieza = function (k, box) { return '<image href="' + BASE + k + '.webp?v=22" x="' + (X0 + box[0] * s).toFixed(1) + '" y="' + (Y0 + box[1] * s).toFixed(1) + '" width="' + (box[2] * s).toFixed(1) + '" height="' + (box[3] * s).toFixed(1) + '"/>'; };
+    var pieza = function (k, box) { return '<image href="' + BASE + k + '.webp?v=23" x="' + (X0 + box[0] * s).toFixed(1) + '" y="' + (Y0 + box[1] * s).toFixed(1) + '" width="' + (box[2] * s).toFixed(1) + '" height="' + (box[3] * s).toFixed(1) + '"/>'; };
     var ce = CX.CLASES[pp.espalda.c] ? pp.espalda.c : cls;
     var efectos = (TUBOS[cls] || TUBOS.plasma).map(function (t, i) {
       var p = P(t[0], t[1]);
@@ -256,7 +256,7 @@ var ROBOT = (function () {
       '<g class="rb-fx">' + efectos + '</g>' +
       '<g class="rb-ant">' + pieza('antena_' + (ANTENA[pp.antenas.c] ? pp.antenas.c : cls), ANTENA[pp.antenas.c] || ANTENA[cls]) + '</g>' +
       
-      '<image href="' + BASE + 'cuerpo_' + cls + '.webp?v=22" x="' + X0 + '" y="' + Y0.toFixed(1) + '" width="' + BW + '" height="' + BH.toFixed(1) + '"' + (tinte ? ' style="filter:' + tinte + '"' : '') + '/>' +
+      '<image href="' + BASE + 'cuerpo_' + cls + '.webp?v=23" x="' + X0 + '" y="' + Y0.toFixed(1) + '" width="' + BW + '" height="' + BH.toFixed(1) + '"' + (tinte ? ' style="filter:' + tinte + '"' : '') + '/>' +
       (COLA_FRENTE[pp.cola.c] ? pieza('cola_' + pp.cola.c + '_frente', COLA[pp.cola.c]) : '') +
       (pp.ojos.c !== cls && CX.CLASES[pp.ojos.c] ? pieza('cara_ojo_' + pp.ojos.c, CARA.ojo) : '') +
       (pp.boca.c !== cls && CX.CLASES[pp.boca.c] ? pieza('cara_boca_' + pp.boca.c, CARA.boca) : '') +
