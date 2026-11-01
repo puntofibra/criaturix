@@ -1071,3 +1071,4 @@ a.btn{text-decoration:none}
 .hvAnim.fuera{animation:hvFuera .35s forwards}
 @keyframes hvFuera{to{scale:1.5;opacity:0;filter:brightness(4)}}
 .hvTrozos{position:absolute;inset:-30px -20px;width:calc(100% + 40px);height:calc(100% + 60px);pointer-events:none;z-index:4}
+#nav button{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}

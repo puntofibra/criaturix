@@ -457,7 +457,14 @@ function ir(v, arg) {
   (VISTAS[v] || VISTAS.inicio)(div, arg);
   if (SES) pintaTop();
 }
-$$('#nav button').forEach(b => b.onclick = () => ir(b.dataset.v));
+$$('#nav button').forEach(b => b.onclick = () => { if (b._largo) { b._largo = false; return; } ir(b.dataset.v); });
+/* acceso oculto al panel admin: mantener pulsado COMBATIR 5 s (sin ninguna señal visible) */
+(() => {
+  const b = $('#nav button.central'); let t = 0;
+  b.addEventListener('pointerdown', () => { b._largo = false; clearTimeout(t); t = setTimeout(() => { b._largo = true; vib(30); Admin.abrir(); }, 5000); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => clearTimeout(t)));
+  b.addEventListener('contextmenu', e => e.preventDefault());
+})();
 $('#tMarca').onclick = () => ir('inicio');
 $('#tSonido').onclick = () => { Son.init(); const on = Son.alternar(); $('#tSonido').classList.toggle('off', !on); if (on) Son.click(); };
 $('#tYo').onclick = () => ir('cuenta');
@@ -693,7 +700,6 @@ VISTAS.inicio = div => {
     </div></div>`;
   $$('[data-ir]', div).forEach(b => b.onclick = () => ir(b.dataset.ir));
   $$('#esc .rb', div).forEach((r, i) => r.onclick = () => detalle(eq[i].id));
-  if (p.admin) { const b = document.createElement('button'); b.className = 'btn mag peq'; b.style.marginTop = '14px'; b.textContent = '⚙ PANEL ADMIN'; b.onclick = () => Admin.abrir(); $('.ancho', div).appendChild(b); }
 };
 
 /* =========================================================
@@ -1125,7 +1131,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 43;   // subir este número (y version.json) en cada actualización
+const VERSION = 44;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();
