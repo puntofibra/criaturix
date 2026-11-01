@@ -483,7 +483,7 @@ $('#tEner').onclick = () => toast('Combates con premio que te quedan hoy. Se rec
    LOGIN
    ========================================================= */
 VISTAS.login = div => {
-  const g1 = CX.genesAzar(Date.now() % 9973, 'bio', 0.9), g2 = CX.genesAzar((Date.now() + 7) % 9973, 'cuantico', 0.9), g3 = CX.genesAzar((Date.now() + 13) % 9973, 'plasma', 0.9);
+  const g1 = CX.genesAzar(Date.now() % 9973, 'bio', 0.9), g2 = { c: 'sombra', col: 0, p: CX.SLOTS.reduce((o, sl) => (o[sl] = ['sombra0', 'sombra0', 'sombra0'], o), {}) }, g3 = CX.genesAzar((Date.now() + 13) % 9973, 'plasma', 0.9);
   div.innerHTML = `<button class="ibtn bPower lPower" aria-label="Salir del juego" title="Salir del juego">${ICO_POWER}</button><div class="login">
     <div class="lHero">
       <img class="lLogo" id="lLogo" src="img/logo.webp" alt="Futurmovil">
@@ -1152,7 +1152,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 54;   // subir este número (y version.json) en cada actualización
+const VERSION = 55;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();
