@@ -851,6 +851,21 @@ function admin_(p) {
   return op(p);
 }
 const ADMIN_OPS = {
+  hoy: () => {
+    const sh = hoja_('Combates', CAB_B), n = sh.getLastRow() - 1, hoy = hoy_(), dia = d => d instanceof Date ? Utilities.formatDate(d, TZ, 'yyyy-MM-dd') : '';
+    const desde = Math.max(2, n + 2 - 6000), filas = n > 0 ? sh.getRange(desde, 1, n + 2 - desde, CAB_B.length).getValues() : [], por = {};
+    filas.forEach(r => {
+      if (dia(r[0]) !== hoy || !r[1]) return;
+      const k = String(r[1]), x = por[k] || (por[k] = { usuario: String(r[2]), partidas: 0, aventura: 0, arena: 0, arenaReal: 0, gana: 0, pierde: 0, chips: 0, primera: r[0].getTime(), ultima: 0 });
+      x.partidas++; const modo = String(r[3]);
+      if (modo.indexOf('Aventura') === 0) x.aventura++; else { x.arena++; if (modo.indexOf('jugador') >= 0) x.arenaReal++; }
+      if (r[5] === 'gana') x.gana++; else if (r[5] === 'pierde') x.pierde++;
+      x.chips += num_(r[7]); x.ultima = Math.max(x.ultima, r[0].getTime());
+    });
+    const lista = Object.keys(por).map(k => por[k]).sort((a, b) => b.partidas - a.partidas);
+    const u = usuarios_().rows, entraron = u.filter(r => dia(r[U.UltimoAcceso]) === hoy).length, nuevos = u.filter(r => dia(r[U.Creado]) === hoy).length;
+    return { ok: true, fecha: hoy, jugadores: lista.length, partidas: lista.reduce((a, x) => a + x.partidas, 0), entraron, nuevos, lista };
+  },
   resumen: () => {
     const u = usuarios_().rows, cr = criaturas_().rows, ped = tabla_(hoja_('Pedidos', CAB_P), CAB_P.length);
     const pagado = ped.filter(x => x[P.Estado] === 'pagado');
