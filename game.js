@@ -350,6 +350,7 @@ const ICO_SLOT = {   // iconos del tipo de pieza (esquina de la carta)
   ojos: '<svg viewBox="0 0 24 24"><path class="b" d="M2 12Q12 2 22 12Q12 22 2 12Z"/><circle cx="12" cy="12" r="4.2" fill="#05060f"/><circle class="f" cx="12" cy="12" r="2.4"/><circle cx="13.3" cy="10.7" r="1" fill="#fff"/></svg>',
   antenas: '<svg viewBox="0 0 24 24"><path class="o" d="M8 22V9M16 22V9" style="stroke-width:2.2"/><circle class="f" cx="8" cy="6" r="3"/><circle class="f" cx="16" cy="6" r="3"/></svg>'
 };
+const ARTE_V2 = { cuerno: 1 };   // piezas con dibujo propio de la variante 2 en las cartas
 const ARTE_CORTE = { espalda: [20, 0, 420, 330] };   // recorte del cuerpo (marco 1024x907) para la espalda: los cañones
 function arteCarta(k) {
   const c = CX.CLASES[k.clase] ? k.clase : 'cromo', v = '?v=12';
@@ -359,7 +360,8 @@ function arteCarta(k) {
     img = `<i class="kImg corte" style="background-image:url(img/piezas/cuerpo_${c}.webp${v});background-size:${1024 * esc}% auto;background-position:${x / (1024 - w) * 100}% ${y / (907 - h) * 100}%;aspect-ratio:${w}/${h}"></i><i class="kFx"></i>`;
   } else {
     const f = { boca: 'cara_boca_', cuerno: 'cuerno_', cola: 'cola_', ojos: 'cara_ojo_' }[k.slot] || 'cuerno_';
-    img = `<img class="kImg" src="img/piezas/${f}${c}.webp${v}" alt="" loading="lazy">`;
+    const var2 = ARTE_V2[k.slot] && /1$/.test(String(k.id || '')) ? '_2' : '';   // dibujo de la variante 2 si ya existe
+    img = `<img class="kImg" src="img/piezas/${f}${c}${var2}.webp${v}" alt="" loading="lazy">`;
   }
   return `<div class="kArte s-${k.slot}">${img}</div>`;
 }
@@ -1136,7 +1138,7 @@ document.addEventListener('pointerdown', () => Son.init(), { once: true });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---- actualización automática: si hay una versión nueva, se recarga sola cuando no estás en combate ---- */
-const VERSION = 47;   // subir este número (y version.json) en cada actualización
+const VERSION = 48;   // subir este número (y version.json) en cada actualización
 let nuevaVersion = 0, actualizando = false, ultVer = 0;
 function compruebaVersion(forzar) {
   if (actualizando || (!forzar && Date.now() - ultVer < 30000)) return; ultVer = Date.now();
