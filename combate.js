@@ -90,11 +90,11 @@ const Combate = (() => {
   /* ojo de criaturix bio con párpados (mismo parpadeo que las criaturas) */
   const OJO_RADAR = (() => {
     const cx = 149, cy = 172, r = 80, f = v => v.toFixed(1);
-    return `<svg class="rb ojoRadar" viewBox="47 70 204 204"><defs><clipPath id="ojoRc"><ellipse cx="${cx}" cy="${cy}" rx="${r}" ry="${r * 1.02}"/></clipPath>
+    return `<svg class="rb ojoRadar" viewBox="47 70 204 204"><defs><mask id="ojoRc" maskUnits="userSpaceOnUse" x="0" y="0" width="307" height="307"><image href="img/ojos/m_cara_ojo_bio.png?v=1" x="59" y="82" width="180" height="180"/></mask>
       <linearGradient id="ojoRs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a2e16"/><stop offset=".72" stop-color="#7a4e2a"/><stop offset=".84" stop-color="#b6ff3a" stop-opacity=".5"/><stop offset=".92" stop-color="#4a2e16"/><stop offset="1" stop-color="#000" stop-opacity=".85"/></linearGradient>
       <linearGradient id="ojoRi" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#4a2e16"/><stop offset=".8" stop-color="#7a4e2a"/><stop offset="1" stop-color="#b6ff3a" stop-opacity=".4"/></linearGradient></defs>
       <image href="img/piezas/cara_ojo_bio.webp?v=23" x="0" y="0" width="307" height="307"/>
-      <g class="rb-parp doble" clip-path="url(#ojoRc)" style="--pd:3.2s;--pdl:-1.4s">
+      <g class="rb-parp doble" mask="url(#ojoRc)" style="--pd:3.2s;--pdl:-1.4s">
       <path class="sup" d="M${f(cx - r * 1.1)} ${f(cy - r * 1.25)}H${f(cx + r * 1.1)}V${f(cy + r * .35)}Q${cx} ${f(cy + r * .72)} ${f(cx - r * 1.1)} ${f(cy + r * .35)}Z" fill="url(#ojoRs)"/>
       <path class="inf" d="M${f(cx - r * 1.1)} ${f(cy + r * 1.15)}H${f(cx + r * 1.1)}V${f(cy + r * .3)}Q${cx} ${f(cy + r * .1)} ${f(cx - r * 1.1)} ${f(cy + r * .3)}Z" fill="url(#ojoRi)"/></g></svg>`;
   })();
